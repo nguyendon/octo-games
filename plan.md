@@ -56,7 +56,8 @@ octo-games/
 │   └── data/game.db        # local sqlite file (gitignored)
 ├── shared/
 │   └── types.ts            # PlayerSave, LevelResult, etc
-├── package.json            # workspaces: client, server, shared
+├── package.json            # root scripts (dev/build/start)
+├── pnpm-workspace.yaml     # workspaces: client, server, shared
 ├── railway.json            # build/start config
 ├── plan.md
 └── .env.example
@@ -109,10 +110,12 @@ Save events (not every frame — too chatty):
 
 ## Local dev + deploy story
 
-- `npm run dev` — Vite (client on :5173) + tsx watch (server on :3000) concurrently. Vite proxies `/api/*` to the server. SQLite file in `server/data/`.
-- `npm run build` — build client into `server/public/`, compile server to `server/dist/`.
-- `npm start` — run the compiled server, which serves the API and the built client.
-- **Railway:** single service. `npm run build && npm start`. Mount a Railway volume at `server/data/` so the SQLite file survives deploys. Swap to Postgres later by replacing `server/src/db.ts` if/when needed.
+- Package manager: **pnpm** (workspaces via `pnpm-workspace.yaml`).
+- `pnpm install` — first-time setup.
+- `pnpm dev` — Vite (client on :5173) + tsx watch (server on :3000) in parallel via `pnpm --parallel --filter`. Vite proxies `/api/*` to the server. SQLite file in `server/data/`.
+- `pnpm build` — build client into `server/public/`, compile server to `server/dist/`.
+- `pnpm start` — run the server, which serves the API and the built client.
+- **Railway:** single service. `pnpm install && pnpm build && pnpm start`. Mount a Railway volume at `server/data/` so the SQLite file survives deploys. Swap to Postgres later by replacing `server/src/db.ts` if/when needed.
 
 ## Milestones
 

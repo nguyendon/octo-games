@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@fastify/static": "^7.0.4",
-    "@octo/shared": "*",
+    "@octo/shared": "workspace:*",
     "fastify": "^4.28.1"
   },
   "devDependencies": {

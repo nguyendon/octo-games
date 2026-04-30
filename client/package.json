@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@octo/shared": "*",
+    "@octo/shared": "workspace:*",
     "phaser": "^3.80.1"
   },
   "devDependencies": {

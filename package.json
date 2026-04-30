@@ -2,19 +2,21 @@
   "name": "octo-games",
   "version": "0.0.1",
   "private": true,
-  "workspaces": ["shared", "server", "client"],
   "scripts": {
-    "dev": "npm-run-all --parallel dev:server dev:client",
-    "dev:server": "npm run dev -w @octo/server",
-    "dev:client": "npm run dev -w @octo/client",
-    "build": "npm run build -w @octo/client && npm run build -w @octo/server",
-    "start": "npm start -w @octo/server"
+    "dev": "pnpm --parallel --filter @octo/server --filter @octo/client run dev",
+    "build": "pnpm --filter @octo/client run build && pnpm --filter @octo/server run build",
+    "start": "pnpm --filter @octo/server run start"
   },
   "engines": {
     "node": ">=20.0.0"
   },
   "devDependencies": {
-    "npm-run-all": "^4.1.5",
     "typescript": "^5.5.4"
+  },
+  "packageManager": "pnpm@10.28.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
