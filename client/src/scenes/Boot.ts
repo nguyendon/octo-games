@@ -7,7 +7,7 @@ export class BootScene extends Phaser.Scene {
 
   async create() {
     this.add
-      .text(400, 260, "Octo Games", {
+      .text(400, 240, "Octo Games", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "48px",
         color: "#ffd166",
@@ -15,7 +15,7 @@ export class BootScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(400, 320, "hello pizza", {
+      .text(400, 300, "hello pizza", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "20px",
         color: "#aaa",
@@ -23,7 +23,7 @@ export class BootScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const statusText = this.add
-      .text(400, 380, "checking server...", {
+      .text(400, 360, "checking server...", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "16px",
         color: "#888",
@@ -37,5 +37,23 @@ export class BootScene extends Phaser.Scene {
     } catch {
       statusText.setText("server: unreachable").setColor("#e07b7b");
     }
+
+    const prompt = this.add
+      .text(400, 420, "press SPACE to start", {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "18px",
+        color: "#ddd",
+      })
+      .setOrigin(0.5);
+
+    this.tweens.add({
+      targets: prompt,
+      alpha: 0.3,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    this.input.keyboard!.once("keydown-SPACE", () => this.scene.start("Level1"));
   }
 }
