@@ -14,12 +14,12 @@ const SLOTS_Y = 28;
 const SLOT_GAP = 32;
 const SLOT_RADIUS = 12;
 const FILL_RADIUS = 9;
+const PROMPT_Y = 568;
 
 export class InventoryHud {
   private readonly fills = new Map<IngredientId, Phaser.GameObjects.Arc>();
   private readonly moneyText: Phaser.GameObjects.Text;
-  private readonly hideHint: Phaser.GameObjects.Text;
-  private readonly hiddenLabel: Phaser.GameObjects.Text;
+  private readonly promptText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
     INGREDIENT_IDS.forEach((id, i) => {
@@ -39,31 +39,52 @@ export class InventoryHud {
       })
       .setOrigin(1, 0.5);
 
-    this.hideHint = scene.add
-      .text(400, 568, "press SPACE to hide", {
+    this.promptText = scene.add
+      .text(400, PROMPT_Y, "", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "14px",
         color: "#cfd8dc",
       })
       .setOrigin(0.5)
       .setVisible(false);
-
-    this.hiddenLabel = scene.add
-      .text(400, 568, "hidden — press SPACE to come out", {
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "14px",
-        color: "#9ad17a",
-      })
-      .setOrigin(0.5)
-      .setVisible(false);
   }
 
-  update(collected: ReadonlySet<IngredientId>, money: number, isHidden: boolean, canHide: boolean) {
+  update(
+    collected: ReadonlySet<IngredientId>,
+    money: number,
+    isHidden: boolean,
+    onHideSpot: boolean,
+    onStove: boolean,
+    allIngredients: boolean,
+  ) {
     for (const [id, fill] of this.fills) {
       fill.setVisible(collected.has(id));
     }
     this.moneyText.setText(`$${money}`);
-    this.hiddenLabel.setVisible(isHidden);
-    this.hideHint.setVisible(!isHidden && canHide);
+
+    let text = "";
+    let color = "#cfd8dc";
+    if (isHidden) {
+      text = "hidden — press SPACE to come out";
+      color = "#9ad17a";
+    } else if (onStove) {
+      if (allIngredients) {
+        text = "hold SPACE to cook the pizza";
+        color = "#9ad17a";
+      } else {
+        const missing = INGREDIENT_IDS.length - collected.size;
+        text = `stove ready, but missing ${missing} ingredient${missing === 1 ? "" : "s"}`;
+        color = "#e07b7b";
+      }
+    } else if (onHideSpot) {
+      text = "press SPACE to hide";
+      color = "#cfd8dc";
+    }
+
+    if (text) {
+      this.promptText.setText(text).setColor(color).setVisible(true);
+    } else {
+      this.promptText.setVisible(false);
+    }
   }
 }

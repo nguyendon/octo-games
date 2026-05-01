@@ -12,6 +12,9 @@ const SIGHT_RANGE = 260;
 const PATROL_REACH = 8;
 const PATROL_TIMEOUT_MS = 4000;
 const PATROL_PAUSE_MS = 700;
+const MIGRATE_REACH = 16;
+const MIGRATE_MIN_MS = 6000;
+const MIGRATE_MAX_MS = 9000;
 
 type EnemyState = "patrol" | "chase";
 
@@ -20,9 +23,13 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
   private patrolTarget: Phaser.Math.Vector2 | null = null;
   private patrolStartedAt = 0;
   private pauseUntil = 0;
+  private homeRoom: Phaser.Geom.Rectangle;
+  private migratePath: Phaser.Math.Vector2[] = [];
+  private nextMigrateAt = 0;
   private readonly walls: Phaser.GameObjects.Rectangle[];
   private readonly target: Player;
-  private readonly interior: Phaser.Geom.Rectangle;
+  private readonly rooms: readonly Phaser.Geom.Rectangle[];
+  private readonly intersection: Phaser.Math.Vector2;
 
   constructor(
     scene: Phaser.Scene,
@@ -30,7 +37,9 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     y: number,
     target: Player,
     walls: Phaser.GameObjects.Rectangle[],
-    interior: Phaser.Geom.Rectangle,
+    rooms: readonly Phaser.Geom.Rectangle[],
+    initialHome: Phaser.Geom.Rectangle,
+    intersection: Phaser.Math.Vector2,
   ) {
     PizzaEnemy.ensureTexture(scene);
 
@@ -45,10 +54,16 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
 
     this.target = target;
     this.walls = walls;
-    this.interior = interior;
+    this.rooms = rooms;
+    this.homeRoom = initialHome;
+    this.intersection = intersection;
   }
 
   override update(time: number) {
+    if (this.nextMigrateAt === 0) {
+      this.nextMigrateAt = time + Phaser.Math.Between(MIGRATE_MIN_MS, MIGRATE_MAX_MS);
+    }
+
     if (this.canSeeTarget()) {
       if (this.aiState !== "chase") {
         this.aiState = "chase";
@@ -97,6 +112,16 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
+    if (this.migratePath.length > 0) {
+      this.followMigratePath(time);
+      return;
+    }
+
+    if (time > this.nextMigrateAt) {
+      this.startMigration(time);
+      return;
+    }
+
     if (
       !this.patrolTarget ||
       this.reachedTarget() ||
@@ -109,11 +134,44 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
-    const dx = this.patrolTarget.x - this.x;
-    const dy = this.patrolTarget.y - this.y;
+    this.walkTowards(this.patrolTarget, PATROL_SPEED);
+  }
+
+  private followMigratePath(time: number) {
+    const wp = this.migratePath[0]!;
+    const dx = wp.x - this.x;
+    const dy = wp.y - this.y;
+    if (dx * dx + dy * dy < MIGRATE_REACH * MIGRATE_REACH) {
+      this.migratePath.shift();
+      if (this.migratePath.length === 0) {
+        this.nextMigrateAt = time + Phaser.Math.Between(MIGRATE_MIN_MS, MIGRATE_MAX_MS);
+        this.patrolTarget = null;
+        this.pauseUntil = time + PATROL_PAUSE_MS;
+        this.setVelocity(0, 0);
+      }
+      return;
+    }
+    this.walkTowards(wp, PATROL_SPEED);
+  }
+
+  private startMigration(time: number) {
+    const others = this.rooms.filter((r) => r !== this.homeRoom);
+    const next = Phaser.Math.RND.pick([...others]);
+    this.migratePath = [
+      this.intersection.clone(),
+      new Phaser.Math.Vector2(next.centerX, next.centerY),
+    ];
+    this.homeRoom = next;
+    this.patrolTarget = null;
+    this.patrolStartedAt = time;
+  }
+
+  private walkTowards(p: Phaser.Math.Vector2, speed: number) {
+    const dx = p.x - this.x;
+    const dy = p.y - this.y;
     const len = Math.hypot(dx, dy);
     if (len > 0) {
-      this.setVelocity((dx / len) * PATROL_SPEED, (dy / len) * PATROL_SPEED);
+      this.setVelocity((dx / len) * speed, (dy / len) * speed);
     } else {
       this.setVelocity(0, 0);
     }
@@ -128,8 +186,8 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
 
   private pickPatrolTarget() {
     for (let i = 0; i < 20; i++) {
-      const x = Phaser.Math.Between(this.interior.left + 24, this.interior.right - 24);
-      const y = Phaser.Math.Between(this.interior.top + 24, this.interior.bottom - 24);
+      const x = Phaser.Math.Between(this.homeRoom.left + 28, this.homeRoom.right - 28);
+      const y = Phaser.Math.Between(this.homeRoom.top + 28, this.homeRoom.bottom - 28);
       const inWall = this.walls.some((w) => w.getBounds().contains(x, y));
       if (!inWall) {
         this.patrolTarget = new Phaser.Math.Vector2(x, y);

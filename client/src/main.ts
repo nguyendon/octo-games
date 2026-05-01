@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { BootScene } from "./scenes/Boot";
 import { Level1Scene } from "./scenes/Level1";
+import { WinScene } from "./scenes/Win";
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -15,5 +16,5 @@ new Phaser.Game({
       debug: false,
     },
   },
-  scene: [BootScene, Level1Scene],
+  scene: [BootScene, Level1Scene, WinScene],
 });
