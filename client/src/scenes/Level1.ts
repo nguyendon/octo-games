@@ -8,6 +8,7 @@ import { HideSpot } from "../entities/HideSpot";
 import { Stove } from "../entities/Stove";
 import { InventoryHud } from "../ui/InventoryHud";
 import { spendMoney } from "../api";
+import { sfx } from "../audio";
 
 const MAP = { x: 60, y: 60, width: 680, height: 480 };
 const WALL_THICKNESS = 12;
@@ -79,7 +80,6 @@ export class Level1Scene extends Phaser.Scene {
   private cookProgress = 0;
   private isInputBlocked = false;
   private startedAt = 0;
-  private catchText?: Phaser.GameObjects.Text;
 
   constructor() {
     super("Level1");
@@ -144,6 +144,7 @@ export class Level1Scene extends Phaser.Scene {
     this.physics.add.overlap(this.player, coins, (_p, c) => {
       (c as MoneyCoin).destroy();
       this.money += 1;
+      sfx.coin();
     });
 
     this.hud = new InventoryHud(this);
@@ -180,8 +181,10 @@ export class Level1Scene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
       if (this.player.isHidden) {
         this.player.unhide();
+        sfx.unhide();
       } else if (onHideSpot) {
         this.player.hide();
+        sfx.hide();
       }
     }
 
@@ -189,6 +192,7 @@ export class Level1Scene extends Phaser.Scene {
       this.cookProgress = Math.min(1, this.cookProgress + delta / COOK_TIME_MS);
       this.stove.setProgress(this.cookProgress);
       if (this.cookProgress >= 1) {
+        sfx.cookComplete();
         const elapsedSeconds = (this.time.now - this.startedAt) / 1000;
         this.scene.start("Win", { money: this.money, timeSeconds: elapsedSeconds });
         return;
@@ -248,6 +252,7 @@ export class Level1Scene extends Phaser.Scene {
         this.collected.add(i.ingredientId);
         i.destroy();
         this.ingredientSprites.delete(i.ingredientId);
+        sfx.pickup();
       },
     );
   }
@@ -259,19 +264,7 @@ export class Level1Scene extends Phaser.Scene {
     this.isInputBlocked = true;
     this.physics.pause();
     this.player.setVelocity(0, 0);
-
-    if (!this.catchText) {
-      this.catchText = this.add
-        .text(400, 250, "CAUGHT!", {
-          fontFamily: "system-ui, sans-serif",
-          fontSize: "48px",
-          color: "#e07b7b",
-          fontStyle: "bold",
-        })
-        .setOrigin(0.5)
-        .setDepth(50);
-    }
-    this.catchText.setAlpha(1);
+    sfx.caught();
 
     const totalMoney = this.getProfile()?.totalMoney ?? 0;
     this.scene.launch("CaughtModal", { fee: CATCH_FEE, totalMoney });
@@ -279,7 +272,6 @@ export class Level1Scene extends Phaser.Scene {
     const modal = this.scene.get("CaughtModal");
     modal.events.once("choice", (choice: "restart" | "pay") => {
       this.scene.stop("CaughtModal");
-      this.catchText?.setAlpha(0);
       if (choice === "restart") {
         this.scene.restart();
       } else {

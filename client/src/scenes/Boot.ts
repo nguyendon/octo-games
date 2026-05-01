@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { PlayerProfile } from "@octo/shared";
 import { fetchProfile } from "../api";
+import { unlockAudio } from "../audio";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -61,6 +62,9 @@ export class BootScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    this.input.keyboard!.once("keydown-SPACE", () => this.scene.start("Level1"));
+    this.input.keyboard!.once("keydown-SPACE", () => {
+      unlockAudio();
+      this.scene.start("Level1");
+    });
   }
 }

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { PlayerProfile } from "@octo/shared";
 import { recordLevelComplete } from "../api";
+import { sfx } from "../audio";
 
 export interface WinSceneData {
   money: number;
@@ -21,6 +22,8 @@ export class WinScene extends Phaser.Scene {
   }
 
   async create() {
+    sfx.win();
+
     this.add
       .text(400, 200, "PIZZA MADE!", {
         fontFamily: "system-ui, sans-serif",
