@@ -1,11 +1,15 @@
 import Phaser from "phaser";
+import type { PlayerProfile } from "@octo/shared";
+import { recordLevelComplete } from "../api";
 
 export interface WinSceneData {
   money: number;
+  timeSeconds: number;
 }
 
 export class WinScene extends Phaser.Scene {
   private money = 0;
+  private timeSeconds = 0;
 
   constructor() {
     super("Win");
@@ -13,11 +17,12 @@ export class WinScene extends Phaser.Scene {
 
   init(data: WinSceneData) {
     this.money = data.money;
+    this.timeSeconds = data.timeSeconds;
   }
 
-  create() {
+  async create() {
     this.add
-      .text(400, 220, "PIZZA MADE!", {
+      .text(400, 200, "PIZZA MADE!", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "56px",
         color: "#9ad17a",
@@ -26,21 +31,39 @@ export class WinScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(400, 290, "you escaped the evil pizza", {
+      .text(400, 270, `you escaped in ${this.timeSeconds.toFixed(1)} s`, {
         fontFamily: "system-ui, sans-serif",
-        fontSize: "20px",
+        fontSize: "18px",
         color: "#cfd8dc",
       })
       .setOrigin(0.5);
 
     this.add
-      .text(400, 350, `money earned: $${this.money}`, {
+      .text(400, 320, `+ $${this.money} earned`, {
         fontFamily: "system-ui, sans-serif",
-        fontSize: "22px",
+        fontSize: "20px",
         color: "#f6c84a",
         fontStyle: "bold",
       })
       .setOrigin(0.5);
+
+    const savedText = this.add
+      .text(400, 360, "saving to your profile...", {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "14px",
+        color: "#888",
+      })
+      .setOrigin(0.5);
+
+    try {
+      const updated = await recordLevelComplete("level-1", this.timeSeconds, this.money);
+      this.registry.set("profile", updated);
+      savedText.setText(`now $${updated.totalMoney} saved`).setColor("#9ad17a");
+    } catch {
+      const profile = this.registry.get("profile") as PlayerProfile | undefined;
+      const fallback = profile ? `(offline · $${profile.totalMoney} saved)` : "(offline — not saved)";
+      savedText.setText(fallback).setColor("#e07b7b");
+    }
 
     const prompt = this.add
       .text(400, 440, "press SPACE to play again", {

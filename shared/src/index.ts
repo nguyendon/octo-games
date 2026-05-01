@@ -19,3 +19,24 @@ export interface PlayerProfile {
 export interface HealthResponse {
   status: "ok";
 }
+
+export interface ProfileRequest {
+  deviceId: string;
+}
+
+export interface SpendRequest {
+  deviceId: string;
+  amount: number;
+}
+
+export interface LevelCompleteRequest {
+  deviceId: string;
+  level: LevelId;
+  timeSeconds: number;
+  moneyEarned: number;
+}
+
+export interface InsufficientFundsResponse {
+  error: "insufficient_funds";
+  totalMoney: number;
+}

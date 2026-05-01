@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import type { PlayerProfile } from "@octo/shared";
+import { fetchProfile } from "../api";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -7,7 +9,7 @@ export class BootScene extends Phaser.Scene {
 
   async create() {
     this.add
-      .text(400, 240, "Octo Games", {
+      .text(400, 220, "Octo Games", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "48px",
         color: "#ffd166",
@@ -15,27 +17,30 @@ export class BootScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(400, 300, "hello pizza", {
+      .text(400, 280, "hide from the evil pizza · cook one of your own", {
         fontFamily: "system-ui, sans-serif",
-        fontSize: "20px",
+        fontSize: "16px",
         color: "#aaa",
       })
       .setOrigin(0.5);
 
     const statusText = this.add
-      .text(400, 360, "checking server...", {
+      .text(400, 340, "loading profile...", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "16px",
         color: "#888",
       })
       .setOrigin(0.5);
 
+    let profile: PlayerProfile | null = null;
     try {
-      const res = await fetch("/api/health");
-      const json = await res.json();
-      statusText.setText(`server: ${json.status}`).setColor("#9ad17a");
+      profile = await fetchProfile();
+      this.registry.set("profile", profile);
+      statusText
+        .setText(`profile loaded · $${profile.totalMoney} saved`)
+        .setColor("#9ad17a");
     } catch {
-      statusText.setText("server: unreachable").setColor("#e07b7b");
+      statusText.setText("server unreachable — playing offline").setColor("#e07b7b");
     }
 
     const prompt = this.add

@@ -31,9 +31,9 @@ export class InventoryHud {
     });
 
     this.moneyText = scene.add
-      .text(SLOTS_RIGHT_X + SLOT_RADIUS, SLOTS_Y + 24, "$0", {
+      .text(SLOTS_RIGHT_X + SLOT_RADIUS, SLOTS_Y + 24, "$0  ($0 saved)", {
         fontFamily: "system-ui, sans-serif",
-        fontSize: "18px",
+        fontSize: "16px",
         color: "#f6c84a",
         fontStyle: "bold",
       })
@@ -52,6 +52,7 @@ export class InventoryHud {
   update(
     collected: ReadonlySet<IngredientId>,
     money: number,
+    totalSaved: number,
     isHidden: boolean,
     onHideSpot: boolean,
     onStove: boolean,
@@ -60,7 +61,7 @@ export class InventoryHud {
     for (const [id, fill] of this.fills) {
       fill.setVisible(collected.has(id));
     }
-    this.moneyText.setText(`$${money}`);
+    this.moneyText.setText(`$${money}  ($${totalSaved} saved)`);
 
     let text = "";
     let color = "#cfd8dc";

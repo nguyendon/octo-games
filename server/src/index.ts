@@ -2,12 +2,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import type { HealthResponse } from "@octo/shared";
+import { registerProfileRoutes } from "./routes/profile";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = Fastify({ logger: true });
 
 app.get("/api/health", async (): Promise<HealthResponse> => ({ status: "ok" }));
+
+registerProfileRoutes(app);
 
 if (process.env.NODE_ENV === "production") {
   const fastifyStatic = await import("@fastify/static");

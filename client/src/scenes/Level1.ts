@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { INGREDIENT_IDS, type IngredientId } from "@octo/shared";
+import { INGREDIENT_IDS, type IngredientId, type PlayerProfile } from "@octo/shared";
 import { Player } from "../entities/Player";
 import { PizzaEnemy } from "../entities/PizzaEnemy";
 import { Ingredient } from "../entities/Ingredient";
@@ -7,16 +7,18 @@ import { MoneyCoin } from "../entities/MoneyCoin";
 import { HideSpot } from "../entities/HideSpot";
 import { Stove } from "../entities/Stove";
 import { InventoryHud } from "../ui/InventoryHud";
+import { spendMoney } from "../api";
 
 const MAP = { x: 60, y: 60, width: 680, height: 480 };
 const WALL_THICKNESS = 12;
 const WALL_COLOR = 0x4a4a55;
 const FLOOR_COLOR = 0x1f1f24;
-const DIVIDER_X = MAP.x + MAP.width / 2; // 400
-const DIVIDER_Y = MAP.y + MAP.height / 2; // 300
-const DOOR_HALF = 30; // door gap is 60 wide, centered on dividers
+const DIVIDER_X = MAP.x + MAP.width / 2;
+const DIVIDER_Y = MAP.y + MAP.height / 2;
+const DOOR_HALF = 30;
 const COOK_TIME_MS = 1500;
-const CATCH_COOLDOWN_MS = 1200;
+const CATCH_FEE = 3;
+const PAY_FEE_GRACE_MS = 1500;
 
 const ROOM_TL = new Phaser.Geom.Rectangle(MAP.x, MAP.y, MAP.width / 2, MAP.height / 2);
 const ROOM_TR = new Phaser.Geom.Rectangle(DIVIDER_X, MAP.y, MAP.width / 2, MAP.height / 2);
@@ -69,9 +71,13 @@ export class Level1Scene extends Phaser.Scene {
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private readonly playerSpawn = new Phaser.Math.Vector2(MAP.x + 80, MAP.y + 80);
   private readonly collected = new Set<IngredientId>();
+  private readonly ingredientSprites = new Map<IngredientId, Ingredient>();
+  private ingredientCollider?: Phaser.Physics.Arcade.Collider;
   private money = 0;
   private invulnerableUntil = 0;
   private cookProgress = 0;
+  private isInputBlocked = false;
+  private startedAt = 0;
   private catchText?: Phaser.GameObjects.Text;
 
   constructor() {
@@ -83,6 +89,8 @@ export class Level1Scene extends Phaser.Scene {
     this.money = 0;
     this.invulnerableUntil = 0;
     this.cookProgress = 0;
+    this.isInputBlocked = false;
+    this.startedAt = this.time.now;
 
     this.add.rectangle(
       MAP.x + MAP.width / 2,
@@ -103,12 +111,11 @@ export class Level1Scene extends Phaser.Scene {
     );
 
     ROOM_LABELS.forEach(([room, label]) => {
-      this.add
-        .text(room.x + 14, room.y + 12, label, {
-          fontFamily: "system-ui, sans-serif",
-          fontSize: "10px",
-          color: "#666",
-        });
+      this.add.text(room.x + 14, room.y + 12, label, {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "10px",
+        color: "#666",
+      });
     });
 
     this.hideSpots = HIDE_SPOT_LAYOUT.map(([x, y]) => new HideSpot(this, x, y));
@@ -130,13 +137,7 @@ export class Level1Scene extends Phaser.Scene {
     this.physics.add.collider(this.enemy, walls);
     this.physics.add.overlap(this.player, this.enemy, () => this.onCaught());
 
-    const ingredients = INGREDIENT_LAYOUT.map(([id, x, y]) => new Ingredient(this, x, y, id));
-    this.physics.add.overlap(this.player, ingredients, (_p, ing) => {
-      const i = ing as Ingredient;
-      if (this.collected.has(i.ingredientId)) return;
-      this.collected.add(i.ingredientId);
-      i.destroy();
-    });
+    this.respawnIngredients();
 
     const coins = COIN_LAYOUT.map(([x, y]) => new MoneyCoin(this, x, y));
     this.physics.add.overlap(this.player, coins, (_p, c) => {
@@ -160,6 +161,8 @@ export class Level1Scene extends Phaser.Scene {
   }
 
   override update(time: number, delta: number) {
+    if (this.isInputBlocked) return;
+
     this.player.update();
     this.enemy.update(time);
 
@@ -179,7 +182,8 @@ export class Level1Scene extends Phaser.Scene {
       this.cookProgress = Math.min(1, this.cookProgress + delta / COOK_TIME_MS);
       this.stove.setProgress(this.cookProgress);
       if (this.cookProgress >= 1) {
-        this.scene.start("Win", { money: this.money });
+        const elapsedSeconds = (this.time.now - this.startedAt) / 1000;
+        this.scene.start("Win", { money: this.money, timeSeconds: elapsedSeconds });
         return;
       }
     } else if (this.cookProgress > 0) {
@@ -187,7 +191,12 @@ export class Level1Scene extends Phaser.Scene {
       this.stove.setProgress(0);
     }
 
-    this.hud.update(this.collected, this.money, this.player.isHidden, onHideSpot, onStove, allIngredients);
+    const totalSaved = this.getProfile()?.totalMoney ?? 0;
+    this.hud.update(this.collected, this.money, totalSaved, this.player.isHidden, onHideSpot, onStove, allIngredients);
+  }
+
+  private getProfile(): PlayerProfile | null {
+    return (this.registry.get("profile") as PlayerProfile | undefined) ?? null;
   }
 
   private buildWalls(): Phaser.GameObjects.Rectangle[] {
@@ -200,21 +209,13 @@ export class Level1Scene extends Phaser.Scene {
 
     const vTopLen = DIVIDER_Y - DOOR_HALF - MAP.y;
     const vBotLen = MAP.y + MAP.height - (DIVIDER_Y + DOOR_HALF);
-    walls.push(
-      this.add.rectangle(DIVIDER_X, MAP.y + vTopLen / 2, WALL_THICKNESS, vTopLen, WALL_COLOR),
-    );
-    walls.push(
-      this.add.rectangle(DIVIDER_X, MAP.y + MAP.height - vBotLen / 2, WALL_THICKNESS, vBotLen, WALL_COLOR),
-    );
+    walls.push(this.add.rectangle(DIVIDER_X, MAP.y + vTopLen / 2, WALL_THICKNESS, vTopLen, WALL_COLOR));
+    walls.push(this.add.rectangle(DIVIDER_X, MAP.y + MAP.height - vBotLen / 2, WALL_THICKNESS, vBotLen, WALL_COLOR));
 
     const hLeftLen = DIVIDER_X - DOOR_HALF - MAP.x;
     const hRightLen = MAP.x + MAP.width - (DIVIDER_X + DOOR_HALF);
-    walls.push(
-      this.add.rectangle(MAP.x + hLeftLen / 2, DIVIDER_Y, hLeftLen, WALL_THICKNESS, WALL_COLOR),
-    );
-    walls.push(
-      this.add.rectangle(MAP.x + MAP.width - hRightLen / 2, DIVIDER_Y, hRightLen, WALL_THICKNESS, WALL_COLOR),
-    );
+    walls.push(this.add.rectangle(MAP.x + hLeftLen / 2, DIVIDER_Y, hLeftLen, WALL_THICKNESS, WALL_COLOR));
+    walls.push(this.add.rectangle(MAP.x + MAP.width - hRightLen / 2, DIVIDER_Y, hRightLen, WALL_THICKNESS, WALL_COLOR));
 
     walls.push(this.add.rectangle(260, 200, 40, 30, WALL_COLOR));
     walls.push(this.add.rectangle(560, 230, 40, 30, WALL_COLOR));
@@ -223,33 +224,82 @@ export class Level1Scene extends Phaser.Scene {
     return walls;
   }
 
-  private onCaught() {
-    if (this.time.now < this.invulnerableUntil) return;
-    this.invulnerableUntil = this.time.now + CATCH_COOLDOWN_MS;
+  private respawnIngredients() {
+    this.ingredientCollider?.destroy();
+    this.ingredientSprites.forEach((s) => s.destroy());
+    this.ingredientSprites.clear();
+    INGREDIENT_LAYOUT.forEach(([id, x, y]) => {
+      const ing = new Ingredient(this, x, y, id);
+      this.ingredientSprites.set(id, ing);
+    });
+    this.ingredientCollider = this.physics.add.overlap(
+      this.player,
+      [...this.ingredientSprites.values()],
+      (_p, ing) => {
+        const i = ing as Ingredient;
+        if (this.collected.has(i.ingredientId)) return;
+        this.collected.add(i.ingredientId);
+        i.destroy();
+        this.ingredientSprites.delete(i.ingredientId);
+      },
+    );
+  }
 
-    if (this.player.isHidden) this.player.unhide();
-    this.player.setPosition(this.playerSpawn.x, this.playerSpawn.y);
+  private onCaught() {
+    if (this.isInputBlocked) return;
+    if (this.time.now < this.invulnerableUntil) return;
+
+    this.isInputBlocked = true;
+    this.physics.pause();
     this.player.setVelocity(0, 0);
-    this.cookProgress = 0;
-    this.stove.setProgress(0);
 
     if (!this.catchText) {
       this.catchText = this.add
-        .text(400, 300, "CAUGHT!", {
+        .text(400, 250, "CAUGHT!", {
           fontFamily: "system-ui, sans-serif",
-          fontSize: "64px",
+          fontSize: "48px",
           color: "#e07b7b",
           fontStyle: "bold",
         })
         .setOrigin(0.5)
-        .setDepth(100);
+        .setDepth(50);
     }
     this.catchText.setAlpha(1);
-    this.tweens.add({
-      targets: this.catchText,
-      alpha: 0,
-      duration: 1100,
-      ease: "Cubic.easeIn",
+
+    const totalMoney = this.getProfile()?.totalMoney ?? 0;
+    this.scene.launch("CaughtModal", { fee: CATCH_FEE, totalMoney });
+
+    const modal = this.scene.get("CaughtModal");
+    modal.events.once("choice", (choice: "restart" | "pay") => {
+      this.scene.stop("CaughtModal");
+      this.catchText?.setAlpha(0);
+      if (choice === "restart") {
+        this.scene.restart();
+      } else {
+        void this.handlePayFee();
+      }
     });
+  }
+
+  private async handlePayFee() {
+    try {
+      const updated = await spendMoney(CATCH_FEE);
+      this.registry.set("profile", updated);
+    } catch (e) {
+      console.error("pay-fee failed:", e);
+      this.scene.restart();
+      return;
+    }
+
+    this.collected.clear();
+    this.respawnIngredients();
+    this.player.setPosition(this.playerSpawn.x, this.playerSpawn.y);
+    this.player.setVelocity(0, 0);
+    if (this.player.isHidden) this.player.unhide();
+    this.cookProgress = 0;
+    this.stove.setProgress(0);
+    this.invulnerableUntil = this.time.now + PAY_FEE_GRACE_MS;
+    this.physics.resume();
+    this.isInputBlocked = false;
   }
 }
