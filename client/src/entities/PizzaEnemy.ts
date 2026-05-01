@@ -8,15 +8,21 @@ const TENTACLE_LEN = 12;
 
 const PATROL_SPEED = 70;
 const CHASE_SPEED = 160;
+const SEARCH_SPEED = 140;
 const SIGHT_RANGE = 260;
 const PATROL_REACH = 8;
+const SEARCH_REACH = 24;
 const PATROL_TIMEOUT_MS = 4000;
 const PATROL_PAUSE_MS = 700;
+const SEARCH_DURATION_MS = 3000;
 const MIGRATE_REACH = 16;
 const MIGRATE_MIN_MS = 6000;
 const MIGRATE_MAX_MS = 9000;
 
-type EnemyState = "patrol" | "chase";
+const TINT_CHASE = 0xff7070;
+const TINT_SEARCH = 0xffaa66;
+
+type EnemyState = "patrol" | "chase" | "search";
 
 export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
   private aiState: EnemyState = "patrol";
@@ -26,6 +32,8 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
   private homeRoom: Phaser.Geom.Rectangle;
   private migratePath: Phaser.Math.Vector2[] = [];
   private nextMigrateAt = 0;
+  private lastSeenAt: Phaser.Math.Vector2 | null = null;
+  private searchUntil = 0;
   private readonly walls: Phaser.GameObjects.Rectangle[];
   private readonly target: Player;
   private readonly rooms: readonly Phaser.Geom.Rectangle[];
@@ -65,19 +73,64 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (this.canSeeTarget()) {
-      if (this.aiState !== "chase") {
-        this.aiState = "chase";
-        this.setTint(0xff7070);
-      }
+      this.lastSeenAt = new Phaser.Math.Vector2(this.target.x, this.target.y);
+      this.enterChase();
       this.runChase();
-    } else {
-      if (this.aiState === "chase") {
-        this.aiState = "patrol";
-        this.clearTint();
-        this.patrolTarget = null;
-      }
-      this.runPatrol(time);
+      return;
     }
+
+    if (this.aiState === "chase") {
+      this.enterSearch(time);
+    }
+
+    if (this.aiState === "search") {
+      if (time > this.searchUntil || this.reachedLastSeen()) {
+        this.enterPatrol();
+      } else {
+        this.runSearch();
+        return;
+      }
+    }
+
+    this.runPatrol(time);
+  }
+
+  private enterChase() {
+    if (this.aiState === "chase") return;
+    this.aiState = "chase";
+    this.setTint(TINT_CHASE);
+  }
+
+  private enterSearch(time: number) {
+    if (!this.lastSeenAt) {
+      this.enterPatrol();
+      return;
+    }
+    this.aiState = "search";
+    this.setTint(TINT_SEARCH);
+    this.searchUntil = time + SEARCH_DURATION_MS;
+  }
+
+  private enterPatrol() {
+    this.aiState = "patrol";
+    this.clearTint();
+    this.patrolTarget = null;
+    this.lastSeenAt = null;
+  }
+
+  private runSearch() {
+    if (!this.lastSeenAt) {
+      this.setVelocity(0, 0);
+      return;
+    }
+    this.walkTowards(this.lastSeenAt, SEARCH_SPEED);
+  }
+
+  private reachedLastSeen(): boolean {
+    if (!this.lastSeenAt) return true;
+    const dx = this.lastSeenAt.x - this.x;
+    const dy = this.lastSeenAt.y - this.y;
+    return dx * dx + dy * dy < SEARCH_REACH * SEARCH_REACH;
   }
 
   private canSeeTarget(): boolean {
