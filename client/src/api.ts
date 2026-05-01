@@ -1,4 +1,4 @@
-import type { LevelId, PlayerProfile } from "@octo/shared";
+import type { LevelCompleteResult, LevelId, PlayerProfile } from "@octo/shared";
 
 const DEVICE_ID_KEY = "octo-games:device-id";
 
@@ -41,8 +41,8 @@ export async function recordLevelComplete(
   level: LevelId,
   timeSeconds: number,
   moneyEarned: number,
-): Promise<PlayerProfile> {
-  return postJson<PlayerProfile>("/api/profile/level-complete", {
+): Promise<LevelCompleteResult> {
+  return postJson<LevelCompleteResult>("/api/profile/level-complete", {
     deviceId: getDeviceId(),
     level,
     timeSeconds,

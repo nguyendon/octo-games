@@ -14,6 +14,11 @@ export interface PlayerProfile {
   id: number;
   name: string;
   totalMoney: number;
+  bestTimes: Record<string, number>;
+}
+
+export interface LevelCompleteResult extends PlayerProfile {
+  isNewBest: boolean;
 }
 
 export interface HealthResponse {

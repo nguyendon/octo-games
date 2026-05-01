@@ -44,15 +44,31 @@ const adjustStmt = db.prepare("UPDATE player SET total_money = total_money + ? W
 const insertResultStmt = db.prepare(
   "INSERT INTO level_result (player_id, level, completed_at, time_seconds, money_earned) VALUES (?, ?, ?, ?, ?)",
 );
+const bestTimesStmt = db.prepare(
+  "SELECT level, MIN(time_seconds) AS best FROM level_result WHERE player_id = ? GROUP BY level",
+);
 
 export interface PlayerDto {
   id: number;
   name: string;
   totalMoney: number;
+  bestTimes: Record<string, number>;
+}
+
+export function getBestTimes(playerId: number): Record<string, number> {
+  const rows = bestTimesStmt.all(playerId) as { level: string; best: number }[];
+  const map: Record<string, number> = {};
+  for (const r of rows) map[r.level] = r.best;
+  return map;
 }
 
 function toDto(row: PlayerRow): PlayerDto {
-  return { id: row.id, name: row.name, totalMoney: row.total_money };
+  return {
+    id: row.id,
+    name: row.name,
+    totalMoney: row.total_money,
+    bestTimes: getBestTimes(row.id),
+  };
 }
 
 export function upsertPlayer(deviceId: string): PlayerDto {
@@ -77,5 +93,7 @@ export function recordLevelResult(
   timeSeconds: number,
   moneyEarned: number,
 ) {
+  // SQLite has dynamic typing; the column is declared INTEGER but accepts the
+  // raw float so best-time tracking keeps sub-second precision.
   insertResultStmt.run(playerId, level, Date.now(), timeSeconds, moneyEarned);
 }

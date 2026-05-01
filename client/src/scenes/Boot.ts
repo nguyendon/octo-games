@@ -36,8 +36,10 @@ export class BootScene extends Phaser.Scene {
     try {
       profile = await fetchProfile();
       this.registry.set("profile", profile);
+      const best = profile.bestTimes["level-1"];
+      const bestPart = best === undefined ? "" : ` · best ${best.toFixed(1)}s`;
       statusText
-        .setText(`profile loaded · $${profile.totalMoney} saved`)
+        .setText(`profile loaded · $${profile.totalMoney} saved${bestPart}`)
         .setColor("#9ad17a");
     } catch {
       statusText.setText("server unreachable — playing offline").setColor("#e07b7b");

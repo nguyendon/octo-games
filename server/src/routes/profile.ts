@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { adjustMoney, recordLevelResult, upsertPlayer } from "../db";
+import { adjustMoney, getBestTimes, recordLevelResult, upsertPlayer } from "../db";
 
 interface IdentifiedBody {
   deviceId?: string;
@@ -53,7 +53,11 @@ export function registerProfileRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "invalid level-complete payload" });
     }
     const player = upsertPlayer(deviceId);
-    recordLevelResult(player.id, level, Math.round(timeSeconds as number), moneyEarned as number);
-    return adjustMoney(player.id, moneyEarned as number);
+    const previousBest = getBestTimes(player.id)[level];
+    recordLevelResult(player.id, level, timeSeconds as number, moneyEarned as number);
+    const updated = adjustMoney(player.id, moneyEarned as number);
+    const newBest = updated.bestTimes[level];
+    const isNewBest = previousBest === undefined || newBest < previousBest;
+    return { ...updated, isNewBest };
   });
 }

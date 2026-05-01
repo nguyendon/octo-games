@@ -58,7 +58,27 @@ export class WinScene extends Phaser.Scene {
     try {
       const updated = await recordLevelComplete("level-1", this.timeSeconds, this.money);
       this.registry.set("profile", updated);
-      savedText.setText(`now $${updated.totalMoney} saved`).setColor("#9ad17a");
+      const best = updated.bestTimes["level-1"];
+      const bestPart = best !== undefined ? ` · best ${best.toFixed(1)}s` : "";
+      savedText.setText(`now $${updated.totalMoney} saved${bestPart}`).setColor("#9ad17a");
+      if (updated.isNewBest) {
+        const badge = this.add
+          .text(400, 395, "★ new best time! ★", {
+            fontFamily: "system-ui, sans-serif",
+            fontSize: "20px",
+            color: "#ffd166",
+            fontStyle: "bold",
+          })
+          .setOrigin(0.5);
+        this.tweens.add({
+          targets: badge,
+          scale: 1.08,
+          duration: 500,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+        });
+      }
     } catch {
       const profile = this.registry.get("profile") as PlayerProfile | undefined;
       const fallback = profile ? `(offline · $${profile.totalMoney} saved)` : "(offline — not saved)";
