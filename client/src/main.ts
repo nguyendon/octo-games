@@ -3,6 +3,7 @@ import { BootScene } from "./scenes/Boot";
 import { Level1Scene } from "./scenes/Level1";
 import { WinScene } from "./scenes/Win";
 import { CaughtModalScene } from "./scenes/CaughtModal";
+import { PauseMenuScene } from "./scenes/PauseMenu";
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -17,5 +18,5 @@ new Phaser.Game({
       debug: false,
     },
   },
-  scene: [BootScene, Level1Scene, WinScene, CaughtModalScene],
+  scene: [BootScene, Level1Scene, WinScene, CaughtModalScene, PauseMenuScene],
 });

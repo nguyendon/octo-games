@@ -69,6 +69,7 @@ export class Level1Scene extends Phaser.Scene {
   private hud!: InventoryHud;
   private hideSpots: HideSpot[] = [];
   private spaceKey!: Phaser.Input.Keyboard.Key;
+  private escKey!: Phaser.Input.Keyboard.Key;
   private readonly playerSpawn = new Phaser.Math.Vector2(MAP.x + 80, MAP.y + 80);
   private readonly collected = new Set<IngredientId>();
   private readonly ingredientSprites = new Map<IngredientId, Ingredient>();
@@ -147,8 +148,9 @@ export class Level1Scene extends Phaser.Scene {
 
     this.hud = new InventoryHud(this);
     this.spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.escKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
-    this.add.text(20, 20, "WASD/arrows · SPACE to hide or cook", {
+    this.add.text(20, 20, "WASD/arrows · SPACE hide or cook · ESC pause", {
       fontFamily: "system-ui, sans-serif",
       fontSize: "14px",
       color: "#aaa",
@@ -162,6 +164,11 @@ export class Level1Scene extends Phaser.Scene {
 
   override update(time: number, delta: number) {
     if (this.isInputBlocked) return;
+
+    if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+      this.openPauseMenu();
+      return;
+    }
 
     this.player.update();
     this.enemy.update(time);
@@ -277,6 +284,24 @@ export class Level1Scene extends Phaser.Scene {
         this.scene.restart();
       } else {
         void this.handlePayFee();
+      }
+    });
+  }
+
+  private openPauseMenu() {
+    this.isInputBlocked = true;
+    this.physics.pause();
+    this.player.setVelocity(0, 0);
+
+    this.scene.launch("PauseMenu");
+    const menu = this.scene.get("PauseMenu");
+    menu.events.once("choice", (choice: "resume" | "restart") => {
+      this.scene.stop("PauseMenu");
+      if (choice === "restart") {
+        this.scene.restart();
+      } else {
+        this.physics.resume();
+        this.isInputBlocked = false;
       }
     });
   }
