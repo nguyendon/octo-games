@@ -113,9 +113,27 @@ Save events (not every frame — too chatty):
 - Package manager: **pnpm** (workspaces via `pnpm-workspace.yaml`).
 - `pnpm install` — first-time setup.
 - `pnpm dev` — Vite (client on :5173) + tsx watch (server on :3000) in parallel via `pnpm --parallel --filter`. Vite proxies `/api/*` to the server. SQLite file in `server/data/`.
-- `pnpm build` — build client into `server/public/`, compile server to `server/dist/`.
-- `pnpm start` — run the server, which serves the API and the built client.
-- **Railway:** single service. `pnpm install && pnpm build && pnpm start`. Mount a Railway volume at `server/data/` so the SQLite file survives deploys. Swap to Postgres later by replacing `server/src/db.ts` if/when needed.
+- `pnpm build` — Vite builds the client into `server/public/`. The server runs from source via `tsx`, so no separate server compile step.
+- `pnpm start` — runs the server with `NODE_ENV=production`; it serves `/api/*` and the built client at `/`.
+
+### Railway deploy
+
+The server is a single Node process that handles both the API and the static client, so this is a single Railway service.
+
+1. Push the repo to GitHub (or use the Railway CLI from local).
+2. In Railway, **New Project → Deploy from GitHub** and pick this repo. Nixpacks reads `packageManager` from `package.json` and uses pnpm automatically.
+3. `railway.json` (in the repo root) pins:
+   - `buildCommand`: `pnpm install --frozen-lockfile && pnpm build`
+   - `startCommand`: `pnpm start`
+   - `healthcheckPath`: `/api/health`
+4. **Add a volume** so SQLite survives redeploys:
+   - Mount path: `/data`
+   - Service env var: `DATA_DIR=/data` (the server reads this in `db.ts`)
+   Without a volume, every deploy wipes `game.db`.
+5. `PORT` and `HOST` are set automatically by Railway; the server already binds `0.0.0.0:$PORT`.
+6. After the first deploy, hit `https://<your-app>.up.railway.app/api/health` — should return `{"status":"ok"}`. Then load the root URL in a browser to play.
+
+Swap to Postgres later by replacing `server/src/db.ts` if/when SQLite outgrows the use case.
 
 ## Milestones
 
