@@ -1,5 +1,15 @@
 export type LevelId = "level-1";
 
+export type IngredientId = "dough" | "sauce" | "cheese" | "pepperoni" | "basil";
+
+export const INGREDIENT_IDS: readonly IngredientId[] = [
+  "dough",
+  "sauce",
+  "cheese",
+  "pepperoni",
+  "basil",
+] as const;
+
 export interface PlayerProfile {
   id: number;
   name: string;

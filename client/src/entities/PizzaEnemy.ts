@@ -66,6 +66,7 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   private canSeeTarget(): boolean {
+    if (this.target.isHidden) return false;
     const dx = this.target.x - this.x;
     const dy = this.target.y - this.y;
     if (dx * dx + dy * dy > SIGHT_RANGE * SIGHT_RANGE) return false;

@@ -7,6 +7,7 @@ const TEXTURE_KEY = "player-placeholder";
 type WasdKeys = Record<"W" | "A" | "S" | "D", Phaser.Input.Keyboard.Key>;
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
+  isHidden = false;
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd: WasdKeys;
 
@@ -39,7 +40,23 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }) as WasdKeys;
   }
 
+  hide() {
+    this.isHidden = true;
+    this.setAlpha(0.25);
+    this.setVelocity(0, 0);
+  }
+
+  unhide() {
+    this.isHidden = false;
+    this.setAlpha(1);
+  }
+
   override update() {
+    if (this.isHidden) {
+      this.setVelocity(0, 0);
+      return;
+    }
+
     const left = this.cursors.left?.isDown || this.wasd.A.isDown;
     const right = this.cursors.right?.isDown || this.wasd.D.isDown;
     const up = this.cursors.up?.isDown || this.wasd.W.isDown;
