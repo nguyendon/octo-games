@@ -18,6 +18,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       g.fillRoundedRect(0, 0, PLAYER_SIZE, PLAYER_SIZE, 4);
       g.lineStyle(2, 0x2b6cb0, 1);
       g.strokeRoundedRect(1, 1, PLAYER_SIZE - 2, PLAYER_SIZE - 2, 4);
+      // facing chevron on the right edge (default facing = +x)
+      g.fillStyle(0x1c4a7a, 1);
+      g.fillTriangle(
+        PLAYER_SIZE - 8, PLAYER_SIZE / 2 - 5,
+        PLAYER_SIZE - 3, PLAYER_SIZE / 2,
+        PLAYER_SIZE - 8, PLAYER_SIZE / 2 + 5,
+      );
       g.generateTexture(TEXTURE_KEY, PLAYER_SIZE, PLAYER_SIZE);
       g.destroy();
     }
@@ -76,5 +83,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     this.setVelocity(vx * PLAYER_SPEED, vy * PLAYER_SPEED);
+
+    if (vx !== 0 || vy !== 0) {
+      this.setRotation(Math.atan2(vy, vx));
+    }
   }
 }
