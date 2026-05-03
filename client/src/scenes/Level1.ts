@@ -215,8 +215,21 @@ export class Level1Scene extends Phaser.Scene {
       this.stove.setProgress(0);
     }
 
-    const totalSaved = this.getProfile()?.totalMoney ?? 0;
-    this.hud.update(this.collected, this.money, totalSaved, this.player.isHidden, onHideSpot, onStove, allIngredients);
+    const profile = this.getProfile();
+    const totalSaved = profile?.totalMoney ?? 0;
+    const best = profile?.bestTimes["level-1"];
+    const elapsed = (this.time.now - this.startedAt) / 1000;
+    this.hud.update(
+      this.collected,
+      this.money,
+      totalSaved,
+      this.player.isHidden,
+      onHideSpot,
+      onStove,
+      allIngredients,
+      elapsed,
+      best,
+    );
   }
 
   private getProfile(): PlayerProfile | null {

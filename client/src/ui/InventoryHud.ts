@@ -20,6 +20,7 @@ export class InventoryHud {
   private readonly fills = new Map<IngredientId, Phaser.GameObjects.Arc>();
   private readonly moneyText: Phaser.GameObjects.Text;
   private readonly promptText: Phaser.GameObjects.Text;
+  private readonly timerText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
     INGREDIENT_IDS.forEach((id, i) => {
@@ -36,6 +37,14 @@ export class InventoryHud {
         fontSize: "16px",
         color: "#f6c84a",
         fontStyle: "bold",
+      })
+      .setOrigin(1, 0.5);
+
+    this.timerText = scene.add
+      .text(SLOTS_RIGHT_X + SLOT_RADIUS, SLOTS_Y + 44, "0.0s", {
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontSize: "14px",
+        color: "#cfd8dc",
       })
       .setOrigin(1, 0.5);
 
@@ -57,11 +66,23 @@ export class InventoryHud {
     onHideSpot: boolean,
     onStove: boolean,
     allIngredients: boolean,
+    elapsedSeconds: number,
+    bestSeconds: number | undefined,
   ) {
     for (const [id, fill] of this.fills) {
       fill.setVisible(collected.has(id));
     }
     this.moneyText.setText(`$${money}  ($${totalSaved} saved)`);
+
+    const timer = `${elapsedSeconds.toFixed(1)}s`;
+    if (bestSeconds !== undefined) {
+      const ahead = elapsedSeconds < bestSeconds;
+      this.timerText
+        .setText(`${timer}  /  best ${bestSeconds.toFixed(1)}s`)
+        .setColor(ahead ? "#9ad17a" : "#cfd8dc");
+    } else {
+      this.timerText.setText(timer).setColor("#cfd8dc");
+    }
 
     let text = "";
     let color = "#cfd8dc";
