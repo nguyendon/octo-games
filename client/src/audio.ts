@@ -80,6 +80,10 @@ export const sfx = {
   },
   hide: () => tone(220, 0.15, "sine", 0.1),
   unhide: () => tone(330, 0.1, "sine", 0.1),
+  spotted: () => {
+    tone(440, 0.06, "square", 0.1);
+    setTimeout(() => tone(660, 0.08, "square", 0.1), 70);
+  },
   caught: () => {
     chord([110, 138, 165], 0.45, "sawtooth", 0.12);
   },

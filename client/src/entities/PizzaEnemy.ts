@@ -125,6 +125,7 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     if (this.aiState === "chase") return;
     this.aiState = "chase";
     this.setTint(TINT_CHASE);
+    this.emit("chase-start");
   }
 
   private enterSearch(time: number) {

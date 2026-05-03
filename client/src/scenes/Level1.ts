@@ -151,6 +151,7 @@ export class Level1Scene extends Phaser.Scene {
     );
     this.physics.add.collider(this.enemy, walls);
     this.physics.add.overlap(this.player, this.enemy, () => this.onCaught());
+    this.enemy.on("chase-start", () => sfx.spotted());
 
     this.respawnIngredients();
 
@@ -194,6 +195,79 @@ export class Level1Scene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(20);
+
+    this.maybeShowTutorial();
+  }
+
+  private maybeShowTutorial() {
+    const KEY = "octo-games:seen-intro";
+    let seen = false;
+    try {
+      seen = localStorage.getItem(KEY) === "1";
+    } catch {
+      /* ignored */
+    }
+    if (seen) return;
+
+    const lines = [
+      "you are the chef.",
+      "the evil pizza is hunting you through the house.",
+      "",
+      "find every ingredient — basil, dough, cheese, sauce, pepperoni —",
+      "then return to the kitchen stove and hold SPACE to cook.",
+      "",
+      "step on a dark blue spot and tap SPACE to hide.",
+      "if it catches you, you can pay $3 (per saved profile) to keep going.",
+    ];
+
+    const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.78).setDepth(200);
+    const panel = this.add
+      .rectangle(400, 300, 540, 280, 0x1c1c20)
+      .setStrokeStyle(2, 0x4a4a55)
+      .setDepth(200);
+    const title = this.add
+      .text(400, 200, "how to play", {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "22px",
+        color: "#ffd166",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setDepth(201);
+    const body = this.add
+      .text(400, 305, lines.join("\n"), {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "13px",
+        color: "#cfd8dc",
+        align: "center",
+        lineSpacing: 2,
+      })
+      .setOrigin(0.5)
+      .setDepth(201);
+    const dismiss = this.add
+      .text(400, 410, "press SPACE to start", {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "16px",
+        color: "#aaa",
+      })
+      .setOrigin(0.5)
+      .setDepth(201);
+
+    this.isInputBlocked = true;
+    this.physics.pause();
+
+    this.input.keyboard!.once("keydown-SPACE", () => {
+      try {
+        localStorage.setItem(KEY, "1");
+      } catch {
+        /* ignored */
+      }
+      [overlay, panel, title, body, dismiss].forEach((g) => g.destroy());
+      this.physics.resume();
+      this.isInputBlocked = false;
+      // capture the elapsed time so the timer doesn't include the read
+      this.startedAt = this.time.now;
+    });
   }
 
   override update(time: number, delta: number) {
