@@ -1,4 +1,6 @@
-export type LevelId = "level-1";
+export type LevelId = "level-1" | "level-2";
+
+export const LEVEL_IDS: readonly LevelId[] = ["level-1", "level-2"] as const;
 
 export type IngredientId = "dough" | "sauce" | "cheese" | "pepperoni" | "basil";
 

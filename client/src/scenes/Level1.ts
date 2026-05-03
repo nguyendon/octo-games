@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { INGREDIENT_IDS, type IngredientId, type PlayerProfile } from "@octo/shared";
+import { INGREDIENT_IDS, type IngredientId, type LevelId, type PlayerProfile } from "@octo/shared";
 import { Player } from "../entities/Player";
 import { PizzaEnemy } from "../entities/PizzaEnemy";
 import { Ingredient, INGREDIENT_COLORS } from "../entities/Ingredient";
@@ -9,6 +9,7 @@ import { Stove } from "../entities/Stove";
 import { InventoryHud } from "../ui/InventoryHud";
 import { spendMoney } from "../api";
 import { isMuted, sfx, toggleMuted } from "../audio";
+import { LEVELS, type LevelConfig, type RoomKey } from "../levels";
 
 const MAP = { x: 60, y: 60, width: 680, height: 480 };
 const WALL_THICKNESS = 12;
@@ -26,44 +27,17 @@ const ROOM_TR = new Phaser.Geom.Rectangle(DIVIDER_X, MAP.y, MAP.width / 2, MAP.h
 const ROOM_BL = new Phaser.Geom.Rectangle(MAP.x, DIVIDER_Y, MAP.width / 2, MAP.height / 2);
 const ROOM_BR = new Phaser.Geom.Rectangle(DIVIDER_X, DIVIDER_Y, MAP.width / 2, MAP.height / 2);
 const ROOMS = [ROOM_TL, ROOM_TR, ROOM_BL, ROOM_BR] as const;
+const ROOM_BY_KEY: Record<RoomKey, Phaser.Geom.Rectangle> = {
+  TL: ROOM_TL,
+  TR: ROOM_TR,
+  BL: ROOM_BL,
+  BR: ROOM_BR,
+};
 const INTERSECTION = new Phaser.Math.Vector2(DIVIDER_X, DIVIDER_Y);
 
-const INGREDIENT_LAYOUT: Array<[IngredientId, number, number]> = [
-  ["basil", 200, 250],
-  ["dough", 540, 130],
-  ["cheese", 660, 240],
-  ["sauce", 130, 470],
-  ["pepperoni", 320, 420],
-];
-
-const COIN_LAYOUT: Array<[number, number]> = [
-  [130, 200],
-  [520, 100],
-  [650, 100],
-  [200, 470],
-  [130, 380],
-  [560, 360],
-  [660, 510],
-  [480, 460],
-];
-
-const HIDE_SPOT_LAYOUT: Array<[number, number]> = [
-  [330, 110],
-  [430, 250],
-  [110, 350],
-  [430, 510],
-];
-
-const STOVE_POS = { x: 620, y: 460 };
-
-const ROOM_LABELS: Array<[Phaser.Geom.Rectangle, string]> = [
-  [ROOM_TL, "LIVING ROOM"],
-  [ROOM_TR, "PANTRY"],
-  [ROOM_BL, "BATHROOM"],
-  [ROOM_BR, "KITCHEN"],
-];
-
-export class Level1Scene extends Phaser.Scene {
+export class LevelScene extends Phaser.Scene {
+  protected levelId: LevelId = "level-1";
+  private cfg!: LevelConfig;
   private player!: Player;
   private enemy!: PizzaEnemy;
   private stove!: Stove;
@@ -74,7 +48,7 @@ export class Level1Scene extends Phaser.Scene {
   private muteKey!: Phaser.Input.Keyboard.Key;
   private muteIndicator?: Phaser.GameObjects.Text;
   private tierLabel?: Phaser.GameObjects.Text;
-  private readonly playerSpawn = new Phaser.Math.Vector2(MAP.x + 80, MAP.y + 80);
+  private playerSpawn = new Phaser.Math.Vector2(0, 0);
   private readonly collected = new Set<IngredientId>();
   private readonly ingredientSprites = new Map<IngredientId, Ingredient>();
   private ingredientCollider?: Phaser.Physics.Arcade.Collider;
@@ -84,8 +58,12 @@ export class Level1Scene extends Phaser.Scene {
   private isInputBlocked = false;
   private startedAt = 0;
 
-  constructor() {
-    super("Level1");
+  constructor(key = "Level1") {
+    super(key);
+  }
+
+  init() {
+    this.cfg = LEVELS[this.levelId];
   }
 
   create() {
@@ -95,6 +73,7 @@ export class Level1Scene extends Phaser.Scene {
     this.cookProgress = 0;
     this.isInputBlocked = false;
     this.startedAt = this.time.now;
+    this.playerSpawn.set(this.cfg.playerSpawn.x, this.cfg.playerSpawn.y);
 
     this.add.rectangle(
       MAP.x + MAP.width / 2,
@@ -118,7 +97,8 @@ export class Level1Scene extends Phaser.Scene {
       MAP.height - WALL_THICKNESS * 2,
     );
 
-    ROOM_LABELS.forEach(([room, label]) => {
+    (Object.entries(this.cfg.roomLabels) as Array<[RoomKey, string]>).forEach(([key, label]) => {
+      const room = ROOM_BY_KEY[key];
       this.add.text(room.x + 14, room.y + 12, label, {
         fontFamily: "system-ui, sans-serif",
         fontSize: "10px",
@@ -126,22 +106,23 @@ export class Level1Scene extends Phaser.Scene {
       });
     });
 
-    this.hideSpots = HIDE_SPOT_LAYOUT.map(([x, y]) => new HideSpot(this, x, y));
-    this.stove = new Stove(this, STOVE_POS.x, STOVE_POS.y);
+    this.hideSpots = this.cfg.hideSpotLayout.map(([x, y]) => new HideSpot(this, x, y));
+    this.stove = new Stove(this, this.cfg.stove.x, this.cfg.stove.y);
 
     this.player = new Player(this, this.playerSpawn.x, this.playerSpawn.y);
     this.physics.add.collider(this.player, walls);
 
-    const wins = this.getProfile()?.winCounts["level-1"] ?? 0;
-    const tier = Math.min(wins, 5);
+    const wins = this.getProfile()?.winCounts[this.levelId] ?? 0;
+    const tier = Math.min(wins + this.cfg.difficultyBonus, 5);
+    const spawnRoom = ROOM_BY_KEY[this.cfg.pizzaSpawnRoom];
     this.enemy = new PizzaEnemy(
       this,
-      ROOM_TR.centerX,
-      ROOM_TR.centerY,
+      spawnRoom.centerX,
+      spawnRoom.centerY,
       this.player,
       walls,
       ROOMS,
-      ROOM_TR,
+      spawnRoom,
       INTERSECTION,
       {
         chaseSpeed: 160 + tier * 12,
@@ -155,7 +136,7 @@ export class Level1Scene extends Phaser.Scene {
 
     this.respawnIngredients();
 
-    const coins = COIN_LAYOUT.map(([x, y]) => new MoneyCoin(this, x, y));
+    const coins = this.cfg.coinLayout.map(([x, y]) => new MoneyCoin(this, x, y));
     this.physics.add.overlap(this.player, coins, (_p, c) => {
       const coin = c as MoneyCoin;
       this.spawnPop(coin.x, coin.y, 0xf6c84a);
@@ -174,7 +155,7 @@ export class Level1Scene extends Phaser.Scene {
       fontSize: "14px",
       color: "#aaa",
     });
-    this.add.text(20, 40, `collect all ingredients, then reach the kitchen stove · pizza tier ${tier}`, {
+    this.add.text(20, 40, `${this.cfg.title} · pizza tier ${tier}`, {
       fontFamily: "system-ui, sans-serif",
       fontSize: "12px",
       color: "#777",
@@ -265,7 +246,6 @@ export class Level1Scene extends Phaser.Scene {
       [overlay, panel, title, body, dismiss].forEach((g) => g.destroy());
       this.physics.resume();
       this.isInputBlocked = false;
-      // capture the elapsed time so the timer doesn't include the read
       this.startedAt = this.time.now;
     });
   }
@@ -310,7 +290,12 @@ export class Level1Scene extends Phaser.Scene {
       if (this.cookProgress >= 1) {
         sfx.cookComplete();
         const elapsedSeconds = (this.time.now - this.startedAt) / 1000;
-        this.scene.start("Win", { money: this.money, timeSeconds: elapsedSeconds });
+        this.scene.start("Win", {
+          money: this.money,
+          timeSeconds: elapsedSeconds,
+          levelId: this.levelId,
+          sceneKey: this.scene.key,
+        });
         return;
       }
     } else if (this.cookProgress > 0) {
@@ -320,7 +305,7 @@ export class Level1Scene extends Phaser.Scene {
 
     const profile = this.getProfile();
     const totalSaved = profile?.totalMoney ?? 0;
-    const best = profile?.bestTimes["level-1"];
+    const best = profile?.bestTimes[this.levelId];
     const elapsed = (this.time.now - this.startedAt) / 1000;
     this.hud.update(
       this.collected,
@@ -368,7 +353,7 @@ export class Level1Scene extends Phaser.Scene {
     this.ingredientCollider?.destroy();
     this.ingredientSprites.forEach((s) => s.destroy());
     this.ingredientSprites.clear();
-    INGREDIENT_LAYOUT.forEach(([id, x, y]) => {
+    this.cfg.ingredientLayout.forEach(([id, x, y]) => {
       const ing = new Ingredient(this, x, y, id);
       this.ingredientSprites.set(id, ing);
     });
@@ -467,9 +452,24 @@ export class Level1Scene extends Phaser.Scene {
     if (this.player.isHidden) this.player.unhide();
     this.cookProgress = 0;
     this.stove.setProgress(0);
-    this.enemy.resetTo(ROOM_BR.centerX, ROOM_BR.centerY, ROOM_BR);
+    const resetRoom = ROOM_BY_KEY[this.cfg.pizzaResetRoom];
+    this.enemy.resetTo(resetRoom.centerX, resetRoom.centerY, resetRoom);
     this.invulnerableUntil = this.time.now + PAY_FEE_GRACE_MS;
     this.physics.resume();
     this.isInputBlocked = false;
+  }
+}
+
+export class Level1Scene extends LevelScene {
+  constructor() {
+    super("Level1");
+    this.levelId = "level-1";
+  }
+}
+
+export class Level2Scene extends LevelScene {
+  constructor() {
+    super("Level2");
+    this.levelId = "level-2";
   }
 }
