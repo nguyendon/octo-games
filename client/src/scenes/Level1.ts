@@ -101,6 +101,10 @@ export class Level1Scene extends Phaser.Scene {
       FLOOR_COLOR,
     );
 
+    const doorColor = 0x2a2a32;
+    this.add.rectangle(DIVIDER_X, DIVIDER_Y, DOOR_HALF * 2 + 4, DOOR_HALF * 2 + 4, doorColor);
+    this.add.rectangle(DIVIDER_X, DIVIDER_Y, DOOR_HALF * 2 - 4, DOOR_HALF * 2 - 4, 0x2f2f37);
+
     const walls = this.buildWalls();
     walls.forEach((w) => this.physics.add.existing(w, true));
 
@@ -347,6 +351,7 @@ export class Level1Scene extends Phaser.Scene {
     if (this.player.isHidden) this.player.unhide();
     this.cookProgress = 0;
     this.stove.setProgress(0);
+    this.enemy.resetTo(ROOM_BR.centerX, ROOM_BR.centerY, ROOM_BR);
     this.invulnerableUntil = this.time.now + PAY_FEE_GRACE_MS;
     this.physics.resume();
     this.isInputBlocked = false;

@@ -80,6 +80,19 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     this.sightRange = tuning.sightRange ?? DEFAULT_SIGHT_RANGE;
   }
 
+  resetTo(x: number, y: number, homeRoom: Phaser.Geom.Rectangle) {
+    this.setPosition(x, y);
+    this.setVelocity(0, 0);
+    this.homeRoom = homeRoom;
+    this.migratePath = [];
+    this.patrolTarget = null;
+    this.lastSeenAt = null;
+    this.searchUntil = 0;
+    this.aiState = "patrol";
+    this.clearTint();
+    this.nextMigrateAt = 0;
+  }
+
   override update(time: number) {
     if (this.nextMigrateAt === 0) {
       this.nextMigrateAt = time + Phaser.Math.Between(MIGRATE_MIN_MS, MIGRATE_MAX_MS);
