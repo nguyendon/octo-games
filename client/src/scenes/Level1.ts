@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { INGREDIENT_IDS, type IngredientId, type PlayerProfile } from "@octo/shared";
 import { Player } from "../entities/Player";
 import { PizzaEnemy } from "../entities/PizzaEnemy";
-import { Ingredient } from "../entities/Ingredient";
+import { Ingredient, INGREDIENT_COLORS } from "../entities/Ingredient";
 import { MoneyCoin } from "../entities/MoneyCoin";
 import { HideSpot } from "../entities/HideSpot";
 import { Stove } from "../entities/Stove";
@@ -142,7 +142,9 @@ export class Level1Scene extends Phaser.Scene {
 
     const coins = COIN_LAYOUT.map(([x, y]) => new MoneyCoin(this, x, y));
     this.physics.add.overlap(this.player, coins, (_p, c) => {
-      (c as MoneyCoin).destroy();
+      const coin = c as MoneyCoin;
+      this.spawnPop(coin.x, coin.y, 0xf6c84a);
+      coin.destroy();
       this.money += 1;
       sfx.coin();
     });
@@ -250,6 +252,7 @@ export class Level1Scene extends Phaser.Scene {
         const i = ing as Ingredient;
         if (this.collected.has(i.ingredientId)) return;
         this.collected.add(i.ingredientId);
+        this.spawnPop(i.x, i.y, INGREDIENT_COLORS[i.ingredientId]);
         i.destroy();
         this.ingredientSprites.delete(i.ingredientId);
         sfx.pickup();
@@ -265,6 +268,8 @@ export class Level1Scene extends Phaser.Scene {
     this.physics.pause();
     this.player.setVelocity(0, 0);
     sfx.caught();
+    this.cameras.main.shake(280, 0.012);
+    this.cameras.main.flash(220, 224, 76, 76);
 
     const totalMoney = this.getProfile()?.totalMoney ?? 0;
     this.scene.launch("CaughtModal", { fee: CATCH_FEE, totalMoney });
@@ -278,6 +283,26 @@ export class Level1Scene extends Phaser.Scene {
         void this.handlePayFee();
       }
     });
+  }
+
+  private spawnPop(x: number, y: number, color: number) {
+    if (!this.textures.exists("pop")) {
+      const g = this.add.graphics();
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(4, 4, 4);
+      g.generateTexture("pop", 8, 8);
+      g.destroy();
+    }
+    const e = this.add.particles(x, y, "pop", {
+      speed: { min: 60, max: 140 },
+      lifespan: 320,
+      quantity: 8,
+      scale: { start: 1.2, end: 0 },
+      tint: color,
+      emitting: false,
+    });
+    e.explode(8);
+    this.time.delayedCall(500, () => e.destroy());
   }
 
   private openPauseMenu() {

@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import type { IngredientId } from "@octo/shared";
 
-const COLORS: Record<IngredientId, number> = {
+export const INGREDIENT_COLORS: Record<IngredientId, number> = {
   dough: 0xf3d9a4,
   sauce: 0xc4422c,
   cheese: 0xf2c94c,
@@ -29,7 +29,7 @@ export class Ingredient extends Phaser.Physics.Arcade.Sprite {
     const g = scene.add.graphics();
     g.fillStyle(0x000000, 0.4);
     g.fillCircle(r + 1, r + 2, r);
-    g.fillStyle(COLORS[id], 1);
+    g.fillStyle(INGREDIENT_COLORS[id], 1);
     g.fillCircle(r, r, r - 2);
     g.lineStyle(1, 0x000000, 0.5);
     g.strokeCircle(r, r, r - 2);
