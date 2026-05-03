@@ -26,6 +26,7 @@ describe("POST /api/profile", () => {
     const body = res.json();
     expect(body.totalMoney).toBe(0);
     expect(body.bestTimes).toEqual({});
+    expect(body.winCounts).toEqual({});
     expect(body.id).toBeGreaterThan(0);
   });
 
@@ -72,6 +73,19 @@ describe("POST /api/profile/level-complete", () => {
     expect(slow.json().isNewBest).toBe(false);
     expect(slow.json().bestTimes["level-1"]).toBe(12);
     expect(slow.json().totalMoney).toBe(10);
+  });
+
+  it("increments winCounts per level on each completion", async () => {
+    for (let i = 0; i < 3; i++) {
+      await postJson("/api/profile/level-complete", {
+        deviceId: "alpha",
+        level: "level-1",
+        timeSeconds: 20,
+        moneyEarned: 1,
+      });
+    }
+    const profile = await postJson("/api/profile", { deviceId: "alpha" });
+    expect(profile.json().winCounts["level-1"]).toBe(3);
   });
 
   it("updates best when faster run is submitted", async () => {

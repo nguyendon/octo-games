@@ -62,8 +62,9 @@ export class WinScene extends Phaser.Scene {
       const updated = await recordLevelComplete("level-1", this.timeSeconds, this.money);
       this.registry.set("profile", updated);
       const best = updated.bestTimes["level-1"];
+      const wins = updated.winCounts["level-1"] ?? 0;
       const bestPart = best !== undefined ? ` · best ${best.toFixed(1)}s` : "";
-      savedText.setText(`now $${updated.totalMoney} saved${bestPart}`).setColor("#9ad17a");
+      savedText.setText(`win #${wins} · $${updated.totalMoney} saved${bestPart}`).setColor("#9ad17a");
       if (updated.isNewBest) {
         const badge = this.add
           .text(400, 395, "★ new best time! ★", {

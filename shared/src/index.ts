@@ -15,6 +15,7 @@ export interface PlayerProfile {
   name: string;
   totalMoney: number;
   bestTimes: Record<string, number>;
+  winCounts: Record<string, number>;
 }
 
 export interface LevelCompleteResult extends PlayerProfile {

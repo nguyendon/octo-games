@@ -47,12 +47,16 @@ const insertResultStmt = db.prepare(
 const bestTimesStmt = db.prepare(
   "SELECT level, MIN(time_seconds) AS best FROM level_result WHERE player_id = ? GROUP BY level",
 );
+const winCountsStmt = db.prepare(
+  "SELECT level, COUNT(*) AS wins FROM level_result WHERE player_id = ? GROUP BY level",
+);
 
 export interface PlayerDto {
   id: number;
   name: string;
   totalMoney: number;
   bestTimes: Record<string, number>;
+  winCounts: Record<string, number>;
 }
 
 export function getBestTimes(playerId: number): Record<string, number> {
@@ -62,12 +66,20 @@ export function getBestTimes(playerId: number): Record<string, number> {
   return map;
 }
 
+export function getWinCounts(playerId: number): Record<string, number> {
+  const rows = winCountsStmt.all(playerId) as { level: string; wins: number }[];
+  const map: Record<string, number> = {};
+  for (const r of rows) map[r.level] = r.wins;
+  return map;
+}
+
 function toDto(row: PlayerRow): PlayerDto {
   return {
     id: row.id,
     name: row.name,
     totalMoney: row.total_money,
     bestTimes: getBestTimes(row.id),
+    winCounts: getWinCounts(row.id),
   };
 }
 

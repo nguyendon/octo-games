@@ -125,6 +125,8 @@ export class Level1Scene extends Phaser.Scene {
     this.player = new Player(this, this.playerSpawn.x, this.playerSpawn.y);
     this.physics.add.collider(this.player, walls);
 
+    const wins = this.getProfile()?.winCounts["level-1"] ?? 0;
+    const tier = Math.min(wins, 5);
     this.enemy = new PizzaEnemy(
       this,
       ROOM_TR.centerX,
@@ -134,6 +136,11 @@ export class Level1Scene extends Phaser.Scene {
       ROOMS,
       ROOM_TR,
       INTERSECTION,
+      {
+        chaseSpeed: 160 + tier * 12,
+        searchSpeed: 140 + tier * 10,
+        sightRange: 260 + tier * 16,
+      },
     );
     this.physics.add.collider(this.enemy, walls);
     this.physics.add.overlap(this.player, this.enemy, () => this.onCaught());
@@ -158,7 +165,7 @@ export class Level1Scene extends Phaser.Scene {
       fontSize: "14px",
       color: "#aaa",
     });
-    this.add.text(20, 40, "collect all ingredients, then reach the kitchen stove", {
+    this.add.text(20, 40, `collect all ingredients, then reach the kitchen stove · pizza tier ${tier}`, {
       fontFamily: "system-ui, sans-serif",
       fontSize: "12px",
       color: "#777",

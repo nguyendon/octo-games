@@ -7,9 +7,9 @@ const BODY_R = 14;
 const TENTACLE_LEN = 12;
 
 const PATROL_SPEED = 70;
-const CHASE_SPEED = 160;
-const SEARCH_SPEED = 140;
-const SIGHT_RANGE = 260;
+const DEFAULT_CHASE_SPEED = 160;
+const DEFAULT_SEARCH_SPEED = 140;
+const DEFAULT_SIGHT_RANGE = 260;
 const PATROL_REACH = 8;
 const SEARCH_REACH = 24;
 const PATROL_TIMEOUT_MS = 4000;
@@ -23,6 +23,12 @@ const TINT_CHASE = 0xff7070;
 const TINT_SEARCH = 0xffaa66;
 
 type EnemyState = "patrol" | "chase" | "search";
+
+export interface PizzaTuning {
+  chaseSpeed?: number;
+  searchSpeed?: number;
+  sightRange?: number;
+}
 
 export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
   private aiState: EnemyState = "patrol";
@@ -38,6 +44,9 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
   private readonly target: Player;
   private readonly rooms: readonly Phaser.Geom.Rectangle[];
   private readonly intersection: Phaser.Math.Vector2;
+  private readonly chaseSpeed: number;
+  private readonly searchSpeed: number;
+  private readonly sightRange: number;
 
   constructor(
     scene: Phaser.Scene,
@@ -48,6 +57,7 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     rooms: readonly Phaser.Geom.Rectangle[],
     initialHome: Phaser.Geom.Rectangle,
     intersection: Phaser.Math.Vector2,
+    tuning: PizzaTuning = {},
   ) {
     PizzaEnemy.ensureTexture(scene);
 
@@ -65,6 +75,9 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     this.rooms = rooms;
     this.homeRoom = initialHome;
     this.intersection = intersection;
+    this.chaseSpeed = tuning.chaseSpeed ?? DEFAULT_CHASE_SPEED;
+    this.searchSpeed = tuning.searchSpeed ?? DEFAULT_SEARCH_SPEED;
+    this.sightRange = tuning.sightRange ?? DEFAULT_SIGHT_RANGE;
   }
 
   override update(time: number) {
@@ -123,7 +136,7 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
       this.setVelocity(0, 0);
       return;
     }
-    this.walkTowards(this.lastSeenAt, SEARCH_SPEED);
+    this.walkTowards(this.lastSeenAt, this.searchSpeed);
   }
 
   private reachedLastSeen(): boolean {
@@ -137,7 +150,7 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     if (this.target.isHidden) return false;
     const dx = this.target.x - this.x;
     const dy = this.target.y - this.y;
-    if (dx * dx + dy * dy > SIGHT_RANGE * SIGHT_RANGE) return false;
+    if (dx * dx + dy * dy > this.sightRange * this.sightRange) return false;
 
     const sightLine = new Phaser.Geom.Line(this.x, this.y, this.target.x, this.target.y);
     for (const wall of this.walls) {
@@ -153,7 +166,7 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     const dy = this.target.y - this.y;
     const len = Math.hypot(dx, dy);
     if (len > 0) {
-      this.setVelocity((dx / len) * CHASE_SPEED, (dy / len) * CHASE_SPEED);
+      this.setVelocity((dx / len) * this.chaseSpeed, (dy / len) * this.chaseSpeed);
     } else {
       this.setVelocity(0, 0);
     }
