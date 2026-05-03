@@ -1,4 +1,14 @@
 let ctx: AudioContext | null = null;
+const MUTE_KEY = "octo-games:muted";
+let muted = readMuted();
+
+function readMuted(): boolean {
+  try {
+    return localStorage.getItem(MUTE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 function getCtx(): AudioContext {
   if (!ctx) ctx = new AudioContext();
@@ -10,7 +20,22 @@ export function unlockAudio() {
   if (c.state === "suspended") void c.resume();
 }
 
+export function isMuted(): boolean {
+  return muted;
+}
+
+export function toggleMuted(): boolean {
+  muted = !muted;
+  try {
+    localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
+  } catch {
+    /* localStorage blocked — keep in-memory state */
+  }
+  return muted;
+}
+
 function tone(freq: number, duration: number, type: OscillatorType = "sine", gain = 0.12) {
+  if (muted) return;
   const c = getCtx();
   if (c.state === "suspended") return;
   const now = c.currentTime;
@@ -30,6 +55,7 @@ function chord(freqs: number[], duration: number, type: OscillatorType = "triang
 }
 
 function arpeggio(freqs: number[], step: number, duration: number, type: OscillatorType = "triangle") {
+  if (muted) return;
   const c = getCtx();
   if (c.state === "suspended") return;
   freqs.forEach((f, i) => {

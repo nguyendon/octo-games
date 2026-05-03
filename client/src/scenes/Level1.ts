@@ -8,7 +8,7 @@ import { HideSpot } from "../entities/HideSpot";
 import { Stove } from "../entities/Stove";
 import { InventoryHud } from "../ui/InventoryHud";
 import { spendMoney } from "../api";
-import { sfx } from "../audio";
+import { isMuted, sfx, toggleMuted } from "../audio";
 
 const MAP = { x: 60, y: 60, width: 680, height: 480 };
 const WALL_THICKNESS = 12;
@@ -71,6 +71,9 @@ export class Level1Scene extends Phaser.Scene {
   private hideSpots: HideSpot[] = [];
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private escKey!: Phaser.Input.Keyboard.Key;
+  private muteKey!: Phaser.Input.Keyboard.Key;
+  private muteIndicator?: Phaser.GameObjects.Text;
+  private tierLabel?: Phaser.GameObjects.Text;
   private readonly playerSpawn = new Phaser.Math.Vector2(MAP.x + 80, MAP.y + 80);
   private readonly collected = new Set<IngredientId>();
   private readonly ingredientSprites = new Map<IngredientId, Ingredient>();
@@ -163,8 +166,9 @@ export class Level1Scene extends Phaser.Scene {
     this.hud = new InventoryHud(this);
     this.spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.escKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.muteKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
-    this.add.text(20, 20, "WASD/arrows · SPACE hide or cook · ESC pause", {
+    this.add.text(20, 20, "WASD/arrows · SPACE hide or cook · ESC pause · M mute", {
       fontFamily: "system-ui, sans-serif",
       fontSize: "14px",
       color: "#aaa",
@@ -174,6 +178,22 @@ export class Level1Scene extends Phaser.Scene {
       fontSize: "12px",
       color: "#777",
     });
+
+    this.muteIndicator = this.add.text(20, 580, isMuted() ? "[muted]" : "", {
+      fontFamily: "system-ui, sans-serif",
+      fontSize: "12px",
+      color: "#888",
+    });
+
+    this.tierLabel = this.add
+      .text(this.enemy.x, this.enemy.y - 32, `T${tier}`, {
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontSize: "11px",
+        color: "#ff8a8a",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setDepth(20);
   }
 
   override update(time: number, delta: number) {
@@ -184,8 +204,17 @@ export class Level1Scene extends Phaser.Scene {
       return;
     }
 
+    if (Phaser.Input.Keyboard.JustDown(this.muteKey)) {
+      const nowMuted = toggleMuted();
+      this.muteIndicator?.setText(nowMuted ? "[muted]" : "");
+    }
+
     this.player.update();
     this.enemy.update(time);
+
+    if (this.tierLabel) {
+      this.tierLabel.setPosition(this.enemy.x, this.enemy.y - 32);
+    }
 
     const onHideSpot = !this.player.isHidden && !!this.physics.overlap(this.player, this.hideSpots);
     const onStove = !this.player.isHidden && !!this.physics.overlap(this.player, this.stove);
