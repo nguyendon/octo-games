@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "pnpm --parallel --filter @octo/server --filter @octo/client run dev",
     "build": "pnpm --filter @octo/client run build && pnpm --filter @octo/server run build",
-    "start": "pnpm --filter @octo/server run start"
+    "start": "pnpm --filter @octo/server run start",
+    "test": "pnpm --filter @octo/server run test",
+    "typecheck": "pnpm --filter @octo/client exec tsc --noEmit && pnpm --filter @octo/server exec tsc --noEmit"
   },
   "engines": {
     "node": ">=20.0.0"

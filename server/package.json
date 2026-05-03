@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "echo 'server runs from source via tsx'",
-    "start": "NODE_ENV=production tsx src/index.ts"
+    "start": "NODE_ENV=production tsx src/index.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fastify/static": "^7.0.4",
@@ -18,6 +19,7 @@
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^20.14.10",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.8"
   }
 }
