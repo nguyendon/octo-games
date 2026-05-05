@@ -147,10 +147,34 @@ Each milestone is one clean commit (or a small series). Stop after each so the u
 6. **Persistence + caught modal** — server endpoints, SQLite schema + migrations, persistent money, caught modal with restart / pay-fee. Commit.
 7. **Deploy** — Railway config, volume for SQLite, smoke test on a public URL. Commit.
 
+## Post-MVP work shipped
+
+Once the seven core milestones were green the project picked up a layer of polish, content, and infra. In rough order:
+
+- **Best-time leaderboard** — `MIN(time_seconds) GROUP BY level` per profile, plus `isNewBest` flag in the level-complete response. Win scene flashes a "★ new best ★" badge.
+- **Win counts + difficulty scaling** — `COUNT(*) GROUP BY level` per profile. Pizza chase / search / sight scale up with each win, capped at tier 5; level configs add a `difficultyBonus` on top.
+- **Sound effects** — synthesized via Web Audio (no asset files): pickup, coin, hide/unhide, spotted, caught, cook-complete, win. M toggles mute; persisted to localStorage.
+- **Camera / particle feedback** — shake + red flash on caught; small pop bursts on every pickup tinted to the pickup's color.
+- **Pause menu (ESC)** — Resume / Restart with the same physics-pause + isInputBlocked pattern as the caught modal.
+- **First-run tutorial overlay** — one-shot, dismissed on SPACE; gated by a localStorage flag so it never shows twice.
+- **Pizza AI gains a search state** — losing LoS during chase now sends the pizza to your last seen position before falling back to patrol; closes the "round a corner = safe" exploit.
+- **Pizza idle animation + face** — sine tweens on angle and scale; pinprick eyes; tier indicator floats above each enemy.
+- **Player facing direction** — asymmetric texture (chevron on the leading edge), rotates to atan2(vy, vx) when moving.
+- **Visual polish** — subtle 40 px floor grid, doorway floor markers at the central intersection, fade-in transitions on Boot/Level/Win.
+- **HUD** — live run timer with "best Xs" comparison (turns green when ahead of pace), money line shows `$run ($saved)`.
+- **Multi-level scaffolding** — `LevelConfig` data drives layouts, room labels, pizza spawns, difficulty bonus. `LevelScene` is generic; `Level1Scene` / `Level2Scene` / `Level3Scene` are thin subclasses.
+  - **Level 2 — Tighter Kitchen**: kitchen relocated to TL, two pizzas, fewer hide spots. Unlocked after first L1 win.
+  - **Level 3 — Pizza Party**: three pizzas at +2 base difficulty, single hide spot. Unlocked after first L2 win.
+- **Records scene** — Boot → R or [R] click; per-level wins + best, plus saved money.
+- **Code-split Phaser** — vendor chunk via `manualChunks`. Game code drops to ~21 KB; Phaser caches independently across deploys.
+- **Server tests** — vitest with Fastify `inject`, ephemeral `DATA_DIR` per test file, 12 tests covering profile / spend / level-complete invariants.
+- **GitHub Actions CI** — typecheck + test + build on every push and PR. Currently green on `main`.
+
 ## Open questions / decisions to make later
 
-- Art style: free asset pack (Kenney.nl etc) vs commission later.
-- Sound: music + SFX layer once gameplay is solid.
-- Multiple levels: scope after level 1 plays well.
+- Art style: free asset pack (Kenney.nl etc) vs commission later. Placeholder shapes are still in use.
+- Background music: ambient drone or short loop — not yet started.
 - Auth: anonymous device-id "profile" for now; real accounts later if needed.
-- Multiplayer: not in scope for MVP.
+- Multiplayer: not in scope.
+- Mobile / touch controls: not yet wired.
+- Achievements: scaffold exists via win counts but no badge UI.
