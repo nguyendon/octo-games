@@ -84,6 +84,15 @@ export class LevelScene extends Phaser.Scene {
       FLOOR_COLOR,
     );
 
+    const grid = this.add.graphics();
+    grid.lineStyle(1, 0x2a2a30, 0.35);
+    for (let x = MAP.x; x <= MAP.x + MAP.width; x += 40) {
+      grid.lineBetween(x, MAP.y, x, MAP.y + MAP.height);
+    }
+    for (let y = MAP.y; y <= MAP.y + MAP.height; y += 40) {
+      grid.lineBetween(MAP.x, y, MAP.x + MAP.width, y);
+    }
+
     const doorColor = 0x2a2a32;
     this.add.rectangle(DIVIDER_X, DIVIDER_Y, DOOR_HALF * 2 + 4, DOOR_HALF * 2 + 4, doorColor);
     this.add.rectangle(DIVIDER_X, DIVIDER_Y, DOOR_HALF * 2 - 4, DOOR_HALF * 2 - 4, 0x2f2f37);

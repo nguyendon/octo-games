@@ -315,9 +315,17 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     g.fillCircle(c, c, BODY_R - 4);
 
     g.fillStyle(0xc44d36, 1);
-    g.fillCircle(c - 4, c - 4, 2);
-    g.fillCircle(c + 5, c - 2, 2);
-    g.fillCircle(c - 2, c + 5, 2);
+    g.fillCircle(c - 5, c + 4, 1.6);
+    g.fillCircle(c + 5, c + 4, 1.6);
+    g.fillCircle(c, c + 6, 1.6);
+
+    // tiny menacing eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(c - 4, c - 2, 1.8);
+    g.fillCircle(c + 4, c - 2, 1.8);
+    g.fillStyle(0x111111, 1);
+    g.fillCircle(c - 4, c - 2, 1);
+    g.fillCircle(c + 4, c - 2, 1);
 
     g.generateTexture(TEX_KEY, TEX_SIZE, TEX_SIZE);
     g.destroy();
