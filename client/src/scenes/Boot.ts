@@ -12,7 +12,7 @@ export class BootScene extends Phaser.Scene {
     this.cameras.main.fadeIn(280, 0, 0, 0);
 
     this.add
-      .text(400, 180, "Octo Games", {
+      .text(400, 140, "Octo Games", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "48px",
         color: "#ffd166",
@@ -20,7 +20,7 @@ export class BootScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(400, 240, "hide from the evil pizza · cook one of your own", {
+      .text(400, 195, "hide from the evil pizza · cook one of your own", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "16px",
         color: "#aaa",
@@ -28,7 +28,7 @@ export class BootScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const statusText = this.add
-      .text(400, 290, "loading profile...", {
+      .text(400, 235, "loading profile...", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "14px",
         color: "#888",
@@ -39,49 +39,58 @@ export class BootScene extends Phaser.Scene {
     try {
       profile = await fetchProfile();
       this.registry.set("profile", profile);
-      const best1 = profile.bestTimes["level-1"];
-      const best2 = profile.bestTimes["level-2"];
-      const parts: string[] = [`$${profile.totalMoney} saved`];
-      if (best1 !== undefined) parts.push(`L1 best ${best1.toFixed(1)}s`);
-      if (best2 !== undefined) parts.push(`L2 best ${best2.toFixed(1)}s`);
-      statusText.setText(parts.join(" · ")).setColor("#9ad17a");
+      statusText.setText(`$${profile.totalMoney} saved`).setColor("#9ad17a");
     } catch {
       statusText.setText("server unreachable — playing offline").setColor("#e07b7b");
     }
 
     const wins1 = profile?.winCounts["level-1"] ?? 0;
+    const wins2 = profile?.winCounts["level-2"] ?? 0;
     const level2Unlocked = wins1 >= 1;
+    const level3Unlocked = wins2 >= 1;
 
     const startScene = (sceneKey: string) => {
       unlockAudio();
       this.scene.start(sceneKey);
     };
 
-    this.makeButton(400, 360, "[1]  Level 1 — The Hungry Cook", "#cfd8dc", true, () =>
+    this.makeButton(400, 290, "[1]  Level 1 — The Hungry Cook", "#cfd8dc", true, () =>
       startScene("Level1"),
     );
 
     this.makeButton(
       400,
-      400,
+      325,
       level2Unlocked
         ? "[2]  Level 2 — Tighter Kitchen"
-        : "[2]  Level 2 — locked (win Level 1 first)",
+        : "[2]  Level 2 — locked (win Level 1)",
       level2Unlocked ? "#cfd8dc" : "#555",
       level2Unlocked,
       () => startScene("Level2"),
     );
 
-    this.makeButton(400, 440, "[3]  Records", "#cfd8dc", true, () => this.scene.start("Stats"));
+    this.makeButton(
+      400,
+      360,
+      level3Unlocked
+        ? "[3]  Level 3 — Pizza Party"
+        : "[3]  Level 3 — locked (win Level 2)",
+      level3Unlocked ? "#cfd8dc" : "#555",
+      level3Unlocked,
+      () => startScene("Level3"),
+    );
+
+    this.makeButton(400, 415, "[R]  Records", "#cfd8dc", true, () => this.scene.start("Stats"));
 
     const kb = this.input.keyboard!;
     kb.on("keydown-ONE", () => startScene("Level1"));
     if (level2Unlocked) kb.on("keydown-TWO", () => startScene("Level2"));
-    kb.on("keydown-THREE", () => this.scene.start("Stats"));
+    if (level3Unlocked) kb.on("keydown-THREE", () => startScene("Level3"));
+    kb.on("keydown-R", () => this.scene.start("Stats"));
     kb.once("keydown-SPACE", () => startScene("Level1"));
 
     const hint = this.add
-      .text(400, 500, "press 1, 2, or 3 — or SPACE for level 1", {
+      .text(400, 470, "press 1 / 2 / 3 / R — or SPACE for level 1", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "13px",
         color: "#888",

@@ -491,3 +491,10 @@ export class Level2Scene extends LevelScene {
     this.levelId = "level-2";
   }
 }
+
+export class Level3Scene extends LevelScene {
+  constructor() {
+    super("Level3");
+    this.levelId = "level-3";
+  }
+}

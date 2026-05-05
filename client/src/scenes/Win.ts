@@ -65,11 +65,12 @@ export class WinScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    let unlockedLevel2 = false;
+    let unlockMessage = "";
     try {
-      const updated = await recordLevelComplete(this.levelId, this.timeSeconds, this.money);
       const previousProfile = this.registry.get("profile") as PlayerProfile | undefined;
-      const previousWins = previousProfile?.winCounts["level-1"] ?? 0;
+      const previousLevel1Wins = previousProfile?.winCounts["level-1"] ?? 0;
+      const previousLevel2Wins = previousProfile?.winCounts["level-2"] ?? 0;
+      const updated = await recordLevelComplete(this.levelId, this.timeSeconds, this.money);
       this.registry.set("profile", updated);
       const best = updated.bestTimes[this.levelId];
       const wins = updated.winCounts[this.levelId] ?? 0;
@@ -93,8 +94,10 @@ export class WinScene extends Phaser.Scene {
           ease: "Sine.easeInOut",
         });
       }
-      if (this.levelId === "level-1" && previousWins === 0) {
-        unlockedLevel2 = true;
+      if (this.levelId === "level-1" && previousLevel1Wins === 0) {
+        unlockMessage = "Level 2 unlocked!";
+      } else if (this.levelId === "level-2" && previousLevel2Wins === 0) {
+        unlockMessage = "Level 3 unlocked!";
       }
     } catch {
       const profile = this.registry.get("profile") as PlayerProfile | undefined;
@@ -102,9 +105,9 @@ export class WinScene extends Phaser.Scene {
       savedText.setText(fallback).setColor("#e07b7b");
     }
 
-    if (unlockedLevel2) {
+    if (unlockMessage) {
       this.add
-        .text(400, 405, "Level 2 unlocked!", {
+        .text(400, 405, unlockMessage, {
           fontFamily: "system-ui, sans-serif",
           fontSize: "16px",
           color: "#ffd166",
