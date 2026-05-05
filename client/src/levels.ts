@@ -2,6 +2,11 @@ import type { IngredientId, LevelId } from "@octo/shared";
 
 export type RoomKey = "TL" | "TR" | "BL" | "BR";
 
+export interface PizzaSpawn {
+  spawn: RoomKey;
+  reset: RoomKey;
+}
+
 export interface LevelConfig {
   id: LevelId;
   title: string;
@@ -10,8 +15,7 @@ export interface LevelConfig {
   hideSpotLayout: Array<[number, number]>;
   stove: { x: number; y: number };
   playerSpawn: { x: number; y: number };
-  pizzaSpawnRoom: RoomKey;
-  pizzaResetRoom: RoomKey;
+  pizzas: PizzaSpawn[];
   difficultyBonus: number;
   roomLabels: Record<RoomKey, string>;
 }
@@ -45,8 +49,7 @@ export const LEVELS: Record<LevelId, LevelConfig> = {
     ],
     stove: { x: 620, y: 460 },
     playerSpawn: { x: 140, y: 140 },
-    pizzaSpawnRoom: "TR",
-    pizzaResetRoom: "BR",
+    pizzas: [{ spawn: "TR", reset: "BR" }],
     difficultyBonus: 0,
     roomLabels: {
       TL: "LIVING ROOM",
@@ -81,9 +84,11 @@ export const LEVELS: Record<LevelId, LevelConfig> = {
     ],
     stove: { x: 130, y: 110 },
     playerSpawn: { x: 660, y: 460 },
-    pizzaSpawnRoom: "BL",
-    pizzaResetRoom: "TR",
-    difficultyBonus: 3,
+    pizzas: [
+      { spawn: "TR", reset: "TR" },
+      { spawn: "BL", reset: "BL" },
+    ],
+    difficultyBonus: 1,
     roomLabels: {
       TL: "KITCHEN",
       TR: "STUDY",

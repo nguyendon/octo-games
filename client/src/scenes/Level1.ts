@@ -39,7 +39,7 @@ export class LevelScene extends Phaser.Scene {
   protected levelId: LevelId = "level-1";
   private cfg!: LevelConfig;
   private player!: Player;
-  private enemy!: PizzaEnemy;
+  private enemies: PizzaEnemy[] = [];
   private stove!: Stove;
   private hud!: InventoryHud;
   private hideSpots: HideSpot[] = [];
@@ -47,7 +47,7 @@ export class LevelScene extends Phaser.Scene {
   private escKey!: Phaser.Input.Keyboard.Key;
   private muteKey!: Phaser.Input.Keyboard.Key;
   private muteIndicator?: Phaser.GameObjects.Text;
-  private tierLabel?: Phaser.GameObjects.Text;
+  private tierLabels: Phaser.GameObjects.Text[] = [];
   private playerSpawn = new Phaser.Math.Vector2(0, 0);
   private readonly collected = new Set<IngredientId>();
   private readonly ingredientSprites = new Map<IngredientId, Ingredient>();
@@ -115,25 +115,28 @@ export class LevelScene extends Phaser.Scene {
 
     const wins = this.getProfile()?.winCounts[this.levelId] ?? 0;
     const tier = Math.min(wins + this.cfg.difficultyBonus, 5);
-    const spawnRoom = ROOM_BY_KEY[this.cfg.pizzaSpawnRoom];
-    this.enemy = new PizzaEnemy(
-      this,
-      spawnRoom.centerX,
-      spawnRoom.centerY,
-      this.player,
-      walls,
-      ROOMS,
-      spawnRoom,
-      INTERSECTION,
-      {
-        chaseSpeed: 160 + tier * 12,
-        searchSpeed: 140 + tier * 10,
-        sightRange: 260 + tier * 16,
-      },
-    );
-    this.physics.add.collider(this.enemy, walls);
-    this.physics.add.overlap(this.player, this.enemy, () => this.onCaught());
-    this.enemy.on("chase-start", () => sfx.spotted());
+    this.enemies = this.cfg.pizzas.map((spec) => {
+      const spawnRoom = ROOM_BY_KEY[spec.spawn];
+      const enemy = new PizzaEnemy(
+        this,
+        spawnRoom.centerX,
+        spawnRoom.centerY,
+        this.player,
+        walls,
+        ROOMS,
+        spawnRoom,
+        INTERSECTION,
+        {
+          chaseSpeed: 160 + tier * 12,
+          searchSpeed: 140 + tier * 10,
+          sightRange: 260 + tier * 16,
+        },
+      );
+      this.physics.add.collider(enemy, walls);
+      this.physics.add.overlap(this.player, enemy, () => this.onCaught());
+      enemy.on("chase-start", () => sfx.spotted());
+      return enemy;
+    });
 
     this.respawnIngredients();
 
@@ -168,15 +171,17 @@ export class LevelScene extends Phaser.Scene {
       color: "#888",
     });
 
-    this.tierLabel = this.add
-      .text(this.enemy.x, this.enemy.y - 32, `T${tier}`, {
-        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-        fontSize: "11px",
-        color: "#ff8a8a",
-        fontStyle: "bold",
-      })
-      .setOrigin(0.5)
-      .setDepth(20);
+    this.tierLabels = this.enemies.map((enemy) =>
+      this.add
+        .text(enemy.x, enemy.y - 32, `T${tier}`, {
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+          fontSize: "11px",
+          color: "#ff8a8a",
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5)
+        .setDepth(20),
+    );
 
     this.maybeShowTutorial();
   }
@@ -265,10 +270,11 @@ export class LevelScene extends Phaser.Scene {
     }
 
     this.player.update();
-    this.enemy.update(time);
-
-    if (this.tierLabel) {
-      this.tierLabel.setPosition(this.enemy.x, this.enemy.y - 32);
+    for (let i = 0; i < this.enemies.length; i++) {
+      const enemy = this.enemies[i];
+      enemy.update(time);
+      const label = this.tierLabels[i];
+      if (label) label.setPosition(enemy.x, enemy.y - 32);
     }
 
     const onHideSpot = !this.player.isHidden && !!this.physics.overlap(this.player, this.hideSpots);
@@ -453,8 +459,10 @@ export class LevelScene extends Phaser.Scene {
     if (this.player.isHidden) this.player.unhide();
     this.cookProgress = 0;
     this.stove.setProgress(0);
-    const resetRoom = ROOM_BY_KEY[this.cfg.pizzaResetRoom];
-    this.enemy.resetTo(resetRoom.centerX, resetRoom.centerY, resetRoom);
+    this.enemies.forEach((enemy, i) => {
+      const reset = ROOM_BY_KEY[this.cfg.pizzas[i].reset];
+      enemy.resetTo(reset.centerX, reset.centerY, reset);
+    });
     this.invulnerableUntil = this.time.now + PAY_FEE_GRACE_MS;
     this.physics.resume();
     this.isInputBlocked = false;
