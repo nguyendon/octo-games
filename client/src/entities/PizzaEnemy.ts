@@ -78,6 +78,24 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     this.chaseSpeed = tuning.chaseSpeed ?? DEFAULT_CHASE_SPEED;
     this.searchSpeed = tuning.searchSpeed ?? DEFAULT_SEARCH_SPEED;
     this.sightRange = tuning.sightRange ?? DEFAULT_SIGHT_RANGE;
+
+    // Idle wiggle so the pizza never looks frozen between patrol pauses.
+    scene.tweens.add({
+      targets: this,
+      angle: 4,
+      duration: 320,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    scene.tweens.add({
+      targets: this,
+      scale: 1.05,
+      duration: 540,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
   }
 
   resetTo(x: number, y: number, homeRoom: Phaser.Geom.Rectangle) {
