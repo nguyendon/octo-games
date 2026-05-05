@@ -72,13 +72,16 @@ export class BootScene extends Phaser.Scene {
       () => startScene("Level2"),
     );
 
+    this.makeButton(400, 440, "[3]  Records", "#cfd8dc", true, () => this.scene.start("Stats"));
+
     const kb = this.input.keyboard!;
     kb.on("keydown-ONE", () => startScene("Level1"));
     if (level2Unlocked) kb.on("keydown-TWO", () => startScene("Level2"));
+    kb.on("keydown-THREE", () => this.scene.start("Stats"));
     kb.once("keydown-SPACE", () => startScene("Level1"));
 
     const hint = this.add
-      .text(400, 460, "press 1 or 2 (or SPACE for level 1)", {
+      .text(400, 500, "press 1, 2, or 3 — or SPACE for level 1", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "13px",
         color: "#888",
