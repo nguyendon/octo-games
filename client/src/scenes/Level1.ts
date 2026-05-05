@@ -67,6 +67,7 @@ export class LevelScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(280, 0, 0, 0);
     this.collected.clear();
     this.money = 0;
     this.invulnerableUntil = 0;

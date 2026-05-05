@@ -9,6 +9,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   async create() {
+    this.cameras.main.fadeIn(280, 0, 0, 0);
+
     this.add
       .text(400, 180, "Octo Games", {
         fontFamily: "system-ui, sans-serif",

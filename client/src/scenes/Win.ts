@@ -28,6 +28,7 @@ export class WinScene extends Phaser.Scene {
   }
 
   async create() {
+    this.cameras.main.fadeIn(280, 0, 0, 0);
     sfx.win();
 
     this.add
