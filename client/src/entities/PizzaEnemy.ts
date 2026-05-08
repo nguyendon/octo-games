@@ -1,7 +1,8 @@
 import Phaser from "phaser";
 import type { Player } from "./Player";
 
-const TEX_KEY = "pizza-enemy";
+export const PIZZA_TEXTURE_KEY = "pizza-enemy";
+const TEX_KEY = PIZZA_TEXTURE_KEY;
 const TEX_SIZE = 64;
 const BODY_R = 16;
 const TENTACLE_LEN = 14;
@@ -321,7 +322,7 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     this.patrolTarget = null;
   }
 
-  private static ensureTexture(scene: Phaser.Scene) {
+  static ensureTexture(scene: Phaser.Scene) {
     if (scene.textures.exists(TEX_KEY)) return;
     const c = TEX_SIZE / 2;
     const g = scene.add.graphics();

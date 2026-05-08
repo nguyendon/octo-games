@@ -2,6 +2,8 @@ import Phaser from "phaser";
 import type { PlayerProfile } from "@octo/shared";
 import { fetchProfile } from "../api";
 import { unlockAudio } from "../audio";
+import { Player, PLAYER_TEXTURE_KEY } from "../entities/Player";
+import { PizzaEnemy, PIZZA_TEXTURE_KEY } from "../entities/PizzaEnemy";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -11,24 +13,59 @@ export class BootScene extends Phaser.Scene {
   async create() {
     this.cameras.main.fadeIn(280, 0, 0, 0);
 
+    Player.ensureTexture(this);
+    PizzaEnemy.ensureTexture(this);
+
+    // Decorative chef + pizza facing each other
+    const chef = this.add.sprite(290, 110, PLAYER_TEXTURE_KEY).setScale(2.6);
+    this.tweens.add({
+      targets: chef,
+      y: 105,
+      duration: 720,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
+    const pizza = this.add.sprite(510, 110, PIZZA_TEXTURE_KEY).setScale(2.0);
+    pizza.setFlipX(true);
+    this.tweens.add({
+      targets: pizza,
+      angle: 4,
+      duration: 320,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    this.tweens.add({
+      targets: pizza,
+      scale: 2.1,
+      duration: 540,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
+    // Title
     this.add
-      .text(400, 140, "Octo Games", {
+      .text(400, 200, "Octo Games", {
         fontFamily: "system-ui, sans-serif",
-        fontSize: "48px",
+        fontSize: "44px",
         color: "#ffd166",
+        fontStyle: "bold",
       })
       .setOrigin(0.5);
 
     this.add
-      .text(400, 195, "hide from the evil pizza · cook one of your own", {
+      .text(400, 240, "hide from the evil pizza · cook one of your own", {
         fontFamily: "system-ui, sans-serif",
-        fontSize: "16px",
+        fontSize: "14px",
         color: "#aaa",
       })
       .setOrigin(0.5);
 
     const statusText = this.add
-      .text(400, 235, "loading profile...", {
+      .text(400, 268, "loading profile...", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "14px",
         color: "#888",
@@ -54,13 +91,13 @@ export class BootScene extends Phaser.Scene {
       this.scene.start(sceneKey);
     };
 
-    this.makeButton(400, 290, "[1]  Level 1 — The Hungry Cook", "#cfd8dc", true, () =>
+    this.makeButton(400, 320, "[1]  Level 1 — The Hungry Cook", "#cfd8dc", true, () =>
       startScene("Level1"),
     );
 
     this.makeButton(
       400,
-      325,
+      355,
       level2Unlocked
         ? "[2]  Level 2 — Tighter Kitchen"
         : "[2]  Level 2 — locked (win Level 1)",
@@ -71,7 +108,7 @@ export class BootScene extends Phaser.Scene {
 
     this.makeButton(
       400,
-      360,
+      390,
       level3Unlocked
         ? "[3]  Level 3 — Pizza Party"
         : "[3]  Level 3 — locked (win Level 2)",
@@ -80,7 +117,7 @@ export class BootScene extends Phaser.Scene {
       () => startScene("Level3"),
     );
 
-    this.makeButton(400, 415, "[R]  Records", "#cfd8dc", true, () => this.scene.start("Stats"));
+    this.makeButton(400, 440, "[R]  Records", "#cfd8dc", true, () => this.scene.start("Stats"));
 
     const kb = this.input.keyboard!;
     kb.on("keydown-ONE", () => startScene("Level1"));
@@ -90,7 +127,7 @@ export class BootScene extends Phaser.Scene {
     kb.once("keydown-SPACE", () => startScene("Level1"));
 
     const hint = this.add
-      .text(400, 470, "press 1 / 2 / 3 / R — or SPACE for level 1", {
+      .text(400, 500, "press 1 / 2 / 3 / R — or SPACE for level 1", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "13px",
         color: "#888",

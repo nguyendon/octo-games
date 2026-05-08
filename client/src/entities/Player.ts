@@ -2,7 +2,8 @@ import Phaser from "phaser";
 
 export const PLAYER_SIZE = 28;
 const PLAYER_SPEED = 220;
-const TEXTURE_KEY = "player-chef";
+export const PLAYER_TEXTURE_KEY = "player-chef";
+const TEXTURE_KEY = PLAYER_TEXTURE_KEY;
 
 type WasdKeys = Record<"W" | "A" | "S" | "D", Phaser.Input.Keyboard.Key>;
 
@@ -74,7 +75,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  private static ensureTexture(scene: Phaser.Scene) {
+  static ensureTexture(scene: Phaser.Scene) {
     if (scene.textures.exists(TEXTURE_KEY)) return;
     const W = PLAYER_SIZE;
     const g = scene.add.graphics();
