@@ -14,7 +14,6 @@ import { LEVELS, type LevelConfig, type RoomKey } from "../levels";
 const MAP = { x: 60, y: 60, width: 680, height: 480 };
 const WALL_THICKNESS = 12;
 const WALL_COLOR = 0x4a4a55;
-const FLOOR_COLOR = 0x1f1f24;
 const DIVIDER_X = MAP.x + MAP.width / 2;
 const DIVIDER_Y = MAP.y + MAP.height / 2;
 const DOOR_HALF = 30;
@@ -76,13 +75,16 @@ export class LevelScene extends Phaser.Scene {
     this.startedAt = this.time.now;
     this.playerSpawn.set(this.cfg.playerSpawn.x, this.cfg.playerSpawn.y);
 
-    this.add.rectangle(
-      MAP.x + MAP.width / 2,
-      MAP.y + MAP.height / 2,
-      MAP.width,
-      MAP.height,
-      FLOOR_COLOR,
-    );
+    const ROOM_FLOOR_TINTS: Record<RoomKey, number> = {
+      TL: 0x1f2024,
+      TR: 0x202327,
+      BL: 0x232024,
+      BR: 0x261f1f,
+    };
+    (Object.keys(ROOM_BY_KEY) as RoomKey[]).forEach((key) => {
+      const r = ROOM_BY_KEY[key];
+      this.add.rectangle(r.centerX, r.centerY, r.width, r.height, ROOM_FLOOR_TINTS[key]);
+    });
 
     const grid = this.add.graphics();
     grid.lineStyle(1, 0x2a2a30, 0.35);
