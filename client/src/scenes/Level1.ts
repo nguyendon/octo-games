@@ -423,6 +423,18 @@ export class LevelScene extends Phaser.Scene {
     this.cameras.main.shake(280, 0.012);
     this.cameras.main.flash(220, 224, 76, 76);
 
+    // Squish the chef briefly so the moment feels physical even though
+    // physics is paused. Tweens still run regardless.
+    this.tweens.add({
+      targets: this.player,
+      scaleX: 1.4,
+      scaleY: 0.55,
+      duration: 130,
+      yoyo: true,
+      ease: "Cubic.easeOut",
+      onComplete: () => this.player.setScale(1),
+    });
+
     const totalMoney = this.getProfile()?.totalMoney ?? 0;
     this.scene.launch("CaughtModal", { fee: CATCH_FEE, totalMoney });
 
