@@ -99,6 +99,7 @@ export class LevelScene extends Phaser.Scene {
 
     const walls = this.buildWalls();
     walls.forEach((w) => this.physics.add.existing(w, true));
+    this.decorateWalls(walls);
 
     this.physics.world.setBounds(
       MAP.x + WALL_THICKNESS,
@@ -363,6 +364,27 @@ export class LevelScene extends Phaser.Scene {
     walls.push(this.add.rectangle(180, 380, 30, 50, WALL_COLOR));
 
     return walls;
+  }
+
+  private decorateWalls(walls: Phaser.GameObjects.Rectangle[]) {
+    const HIGHLIGHT = 0x6a6a75;
+    const SHADOW = 0x2e2e36;
+    for (const w of walls) {
+      const left = w.x - w.width / 2;
+      const top = w.y - w.height / 2;
+      // Top edge highlight (1px strip)
+      this.add.rectangle(w.x, top + 1, Math.max(2, w.width - 2), 1, HIGHLIGHT).setDepth(1);
+      // Bottom edge shadow
+      this.add
+        .rectangle(w.x, top + w.height - 1, Math.max(2, w.width - 2), 1, SHADOW)
+        .setDepth(1);
+      // Left edge highlight for vertical walls
+      if (w.height > w.width) {
+        this.add
+          .rectangle(left + 1, w.y, 1, Math.max(2, w.height - 2), HIGHLIGHT)
+          .setDepth(1);
+      }
+    }
   }
 
   private respawnIngredients() {

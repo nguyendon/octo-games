@@ -48,6 +48,7 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
   private readonly chaseSpeed: number;
   private readonly searchSpeed: number;
   private readonly sightRange: number;
+  private trail?: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor(
     scene: Phaser.Scene,
@@ -80,6 +81,26 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     this.searchSpeed = tuning.searchSpeed ?? DEFAULT_SEARCH_SPEED;
     this.sightRange = tuning.sightRange ?? DEFAULT_SIGHT_RANGE;
 
+    // Inky trail emitted while chasing
+    if (!scene.textures.exists("pizza-trail")) {
+      const tg = scene.add.graphics();
+      tg.fillStyle(0x222222, 1);
+      tg.fillCircle(4, 4, 4);
+      tg.generateTexture("pizza-trail", 8, 8);
+      tg.destroy();
+    }
+    this.trail = scene.add.particles(0, 0, "pizza-trail", {
+      follow: this,
+      scale: { start: 0.9, end: 0 },
+      alpha: { start: 0.45, end: 0 },
+      lifespan: 520,
+      quantity: 1,
+      frequency: 80,
+      speed: 0,
+      emitting: false,
+    });
+    this.trail.setDepth(this.depth - 1);
+
     // Idle wiggle so the pizza never looks frozen between patrol pauses.
     scene.tweens.add({
       targets: this,
@@ -109,6 +130,7 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     this.searchUntil = 0;
     this.aiState = "patrol";
     this.clearTint();
+    this.trail?.stop();
     this.nextMigrateAt = 0;
   }
 
@@ -144,6 +166,7 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     if (this.aiState === "chase") return;
     this.aiState = "chase";
     this.setTint(TINT_CHASE);
+    this.trail?.start();
     this.emit("chase-start");
   }
 
@@ -154,12 +177,14 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     }
     this.aiState = "search";
     this.setTint(TINT_SEARCH);
+    this.trail?.stop();
     this.searchUntil = time + SEARCH_DURATION_MS;
   }
 
   private enterPatrol() {
     this.aiState = "patrol";
     this.clearTint();
+    this.trail?.stop();
     this.patrolTarget = null;
     this.lastSeenAt = null;
   }
