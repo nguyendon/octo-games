@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { generatePixelTexture, type Palette, type PixelGrid } from "../pixel";
 
 export const PLAYER_SIZE = 28;
 const PLAYER_SPEED = 220;
@@ -6,6 +7,66 @@ export const PLAYER_TEXTURE_KEY = "player-chef";
 const TEXTURE_KEY = PLAYER_TEXTURE_KEY;
 
 type WasdKeys = Record<"W" | "A" | "S" | "D", Phaser.Input.Keyboard.Key>;
+
+// Top-down 3/4 view chef, 28x28 native pixels.
+// W = white (hat / coat highlight)
+// w = coat off-white
+// G = hat shadow
+// k = button / outline
+// P = skin
+// p = skin shadow
+// e = eye
+// r = blush
+// m = mouth
+// N = pant navy
+// n = pant highlight
+// B = boot
+// .  = transparent
+const CHEF: PixelGrid = [
+  "............................",
+  "............................",
+  "...........WWWW.............",
+  "..........WWWWWW............",
+  ".........WWWWWWWW...........",
+  ".........WWWWWWWW...........",
+  "........WWWWWWWWWW..........",
+  "........WGGGGGGGGW..........",
+  ".......kPPPPPPPPPPk.........",
+  ".......kPPePPPPePPk.........",
+  ".......kPPPPPPPPPPk.........",
+  ".......kPrPPmmPPrPk.........",
+  "........kPPPPPPPPk..........",
+  ".........kPPPPPPk...........",
+  "........WWWWWWWWWW..........",
+  ".......WwwwwwwwwwwW.........",
+  "......WwwwwkkkkwwwwW........",
+  "......WwwwkBBBBkwwwW........",
+  "......WwwwwwwwwwwwwW........",
+  "......WwwwwkkkkwwwwW........",
+  "......WwwwkBBBBkwwwW........",
+  "......WwwwwwwwwwwwwW........",
+  ".......WwwwwwwwwwwW.........",
+  "........NNNNNNNNNN..........",
+  "........NNNNNNNNNN..........",
+  ".......NNNN....NNNN.........",
+  "......BBBB......BBBB........",
+  "......BBBB......BBBB........",
+];
+
+const CHEF_PALETTE: Palette = {
+  W: 0xffffff,
+  w: 0xe8eef5,
+  G: 0xc4ccd6,
+  k: 0x2b2f3a,
+  P: 0xf2c79c,
+  p: 0xd8a376,
+  e: 0x111111,
+  r: 0xed9aa6,
+  m: 0x9c2a2a,
+  N: 0x32395a,
+  n: 0x4a5378,
+  B: 0x1a1d24,
+};
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   isHidden = false;
@@ -19,8 +80,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(22, 22);
-    body.setOffset((PLAYER_SIZE - 22) / 2, (PLAYER_SIZE - 22) / 2);
+    body.setSize(18, 22);
+    body.setOffset((PLAYER_SIZE - 18) / 2, PLAYER_SIZE - 24);
     body.setCollideWorldBounds(true);
 
     const keyboard = scene.input.keyboard!;
@@ -69,57 +130,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     this.setVelocity(vx * PLAYER_SPEED, vy * PLAYER_SPEED);
-
-    if (vx !== 0 || vy !== 0) {
-      this.setRotation(Math.atan2(vy, vx));
-    }
+    // Pixel art chef stays upright (no rotation) so the hat doesn't flip;
+    // facing direction is conveyed by motion + the squish-on-catch tween.
+    if (vx < 0) this.setFlipX(true);
+    else if (vx > 0) this.setFlipX(false);
   }
 
   static ensureTexture(scene: Phaser.Scene) {
-    if (scene.textures.exists(TEXTURE_KEY)) return;
-    const W = PLAYER_SIZE;
-    const g = scene.add.graphics();
-
-    // Soft drop shadow
-    g.fillStyle(0x000000, 0.35);
-    g.fillEllipse(W / 2, W - 2, 18, 5);
-
-    // Chef coat (oriented "facing right" by default)
-    g.fillStyle(0xeaf0f7, 1);
-    g.fillRoundedRect(5, 12, 18, 14, 4);
-    g.lineStyle(1.5, 0xb3becb, 1);
-    g.strokeRoundedRect(5, 12, 18, 14, 4);
-
-    // Coat buttons down the middle
-    g.fillStyle(0x2b3340, 1);
-    g.fillCircle(14, 16, 1);
-    g.fillCircle(14, 20, 1);
-
-    // Skin / face
-    g.fillStyle(0xf2c79c, 1);
-    g.fillCircle(14, 9, 5);
-    g.lineStyle(1, 0xb88860, 1);
-    g.strokeCircle(14, 9, 5);
-
-    // Chef hat — band + poof
-    g.fillStyle(0xffffff, 1);
-    g.fillRoundedRect(9, 4, 10, 3, 1);
-    g.fillCircle(11, 3, 2.4);
-    g.fillCircle(14, 1.5, 2.8);
-    g.fillCircle(17, 3, 2.4);
-    g.lineStyle(1, 0xc8d0d8, 1);
-    g.strokeRoundedRect(9, 4, 10, 3, 1);
-
-    // Eyes — facing toward +x (right side of head)
-    g.fillStyle(0x111111, 1);
-    g.fillCircle(15, 8, 1);
-    g.fillCircle(17, 8, 1);
-
-    // Tiny nose / mouth on the leading edge
-    g.fillStyle(0xb88860, 1);
-    g.fillCircle(18.2, 10, 0.7);
-
-    g.generateTexture(TEXTURE_KEY, W, W);
-    g.destroy();
+    generatePixelTexture(scene, TEXTURE_KEY, CHEF, CHEF_PALETTE);
   }
 }

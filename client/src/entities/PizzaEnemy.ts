@@ -3,10 +3,10 @@ import type { Player } from "./Player";
 
 export const PIZZA_TEXTURE_KEY = "pizza-enemy";
 const TEX_KEY = PIZZA_TEXTURE_KEY;
-const TEX_SIZE = 64;
-const BODY_R = 16;
-const TENTACLE_LEN = 14;
-const HITBOX_R = 14;
+const TEX_SIZE = 36;
+const BODY_R = 10;
+const TENTACLE_LEN = 6;
+const HITBOX_R = 12;
 
 const PATROL_SPEED = 70;
 const DEFAULT_CHASE_SPEED = 160;
@@ -324,74 +324,97 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
 
   static ensureTexture(scene: Phaser.Scene) {
     if (scene.textures.exists(TEX_KEY)) return;
-    const c = TEX_SIZE / 2;
+    const cx = TEX_SIZE / 2;
+    const cy = TEX_SIZE / 2;
     const g = scene.add.graphics();
 
-    // Drop shadow under the body
-    g.fillStyle(0x000000, 0.45);
-    g.fillEllipse(c, c + BODY_R - 1, BODY_R * 1.9, BODY_R * 0.55);
+    const px = (color: number, x: number, y: number, alpha = 1) => {
+      g.fillStyle(color, alpha);
+      g.fillRect(Math.round(x), Math.round(y), 1, 1);
+    };
 
-    // Tentacles — 8 wavy black arms, each drawn as a 3-segment polyline
-    // with a slight angular offset at the midpoint so they look organic.
-    const TENTACLES = 8;
-    g.lineStyle(4, 0x111111, 1);
-    for (let i = 0; i < TENTACLES; i++) {
-      const angle = (Math.PI * 2 * i) / TENTACLES;
-      const wOffset = (i % 2 === 0 ? 1 : -1) * 0.18;
-      const baseR = BODY_R - 2;
-      const midR = baseR + TENTACLE_LEN * 0.55;
-      const tipR = baseR + TENTACLE_LEN;
-      const x0 = c + Math.cos(angle) * baseR;
-      const y0 = c + Math.sin(angle) * baseR;
-      const x1 = c + Math.cos(angle + wOffset) * midR;
-      const y1 = c + Math.sin(angle + wOffset) * midR;
-      const x2 = c + Math.cos(angle - wOffset * 0.4) * tipR;
-      const y2 = c + Math.sin(angle - wOffset * 0.4) * tipR;
-      g.beginPath();
-      g.moveTo(x0, y0);
-      g.lineTo(x1, y1);
-      g.lineTo(x2, y2);
-      g.strokePath();
-      // Tentacle tip blob
-      g.fillStyle(0x111111, 1);
-      g.fillCircle(x2, y2, 2);
+    // Tentacles — 8 directions, drawn as 1-2 px wide chunky lines.
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 * i) / 8;
+      for (let t = 0; t <= TENTACLE_LEN; t++) {
+        const r = BODY_R - 1 + t;
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+        px(0x0e0e16, x, y);
+        // Thicken by 1 px perpendicular
+        const px2x = x + Math.cos(angle + Math.PI / 2);
+        const px2y = y + Math.sin(angle + Math.PI / 2);
+        px(0x1c1c2a, px2x, px2y);
+      }
+      // Bulb at tip
+      const tipR = BODY_R + TENTACLE_LEN;
+      const tx = cx + Math.cos(angle) * tipR;
+      const ty = cy + Math.sin(angle) * tipR;
+      px(0x0e0e16, tx, ty);
+      px(0x0e0e16, tx + Math.cos(angle + Math.PI / 2), ty + Math.sin(angle + Math.PI / 2));
+      px(0x0e0e16, tx - Math.cos(angle + Math.PI / 2), ty - Math.sin(angle + Math.PI / 2));
     }
 
-    // Crust ring (darker outer, lighter inner)
-    g.fillStyle(0x8a4a26, 1);
-    g.fillCircle(c, c, BODY_R);
-    g.fillStyle(0xd07a3a, 1);
-    g.fillCircle(c, c, BODY_R - 1.5);
-    // Cheese layer
-    g.fillStyle(0xf6d488, 1);
-    g.fillCircle(c, c, BODY_R - 4);
+    // Body — concentric pixel rings (no AA: each pixel decided by distance).
+    for (let y = -BODY_R; y <= BODY_R; y++) {
+      for (let x = -BODY_R; x <= BODY_R; x++) {
+        const d = Math.sqrt(x * x + y * y);
+        if (d > BODY_R + 0.2) continue;
+        let color;
+        if (d > BODY_R - 0.6) color = 0x3a1808;
+        else if (d > BODY_R - 1.6) color = 0x6a2f10;
+        else if (d > BODY_R - 2.6) color = 0xa8602a;
+        else if (d > BODY_R - 3.6) color = 0xd6863a;
+        else if (d > BODY_R - 4.5) color = 0xe8a55a;
+        else color = 0xf0c46e;
+        px(color, cx + x, cy + y);
+      }
+    }
 
-    // Pepperoni / sauce flecks
-    g.fillStyle(0xc44d36, 1);
-    g.fillCircle(c - 6, c + 3, 2);
-    g.fillCircle(c + 6, c + 4, 1.8);
-    g.fillCircle(c + 2, c - 6, 1.6);
+    // Cheese highlight specks
+    px(0xfde7a8, cx - 4, cy - 1);
+    px(0xfde7a8, cx + 3, cy + 2);
+    px(0xfde7a8, cx - 1, cy + 4);
 
-    // Wide-open menacing mouth with teeth
-    g.fillStyle(0x1a0508, 1);
-    g.fillEllipse(c, c + 1, 8, 4.5);
-    g.fillStyle(0xffffff, 1);
-    // Top row of teeth
-    g.fillTriangle(c - 4, c - 1, c - 2.5, c - 1, c - 3.2, c + 1);
-    g.fillTriangle(c - 1.5, c - 1, c, c - 1, c - 0.7, c + 1);
-    g.fillTriangle(c + 1, c - 1, c + 2.5, c - 1, c + 1.7, c + 1);
-    g.fillTriangle(c + 3, c - 1, c + 4, c - 1, c + 3.5, c + 0.5);
+    // Pepperoni — three small dark-red discs (3-pixel plus-shape)
+    const peps: Array<[number, number]> = [
+      [-4, -1],
+      [3, -2],
+      [-1, 4],
+    ];
+    for (const [dx, dy] of peps) {
+      const x = cx + dx;
+      const y = cy + dy;
+      px(0x7a2222, x, y);
+      px(0x7a2222, x - 1, y);
+      px(0x7a2222, x + 1, y);
+      px(0x7a2222, x, y - 1);
+      px(0x7a2222, x, y + 1);
+      px(0xa83232, x, y);
+      px(0x4a1010, x + 1, y + 1);
+    }
 
-    // Glowing red eyes
-    g.fillStyle(0xffffff, 1);
-    g.fillCircle(c - 5, c - 5, 2.4);
-    g.fillCircle(c + 5, c - 5, 2.4);
-    g.fillStyle(0xff2d2d, 1);
-    g.fillCircle(c - 5, c - 5, 1.5);
-    g.fillCircle(c + 5, c - 5, 1.5);
-    g.fillStyle(0x000000, 1);
-    g.fillCircle(c - 5, c - 5, 0.8);
-    g.fillCircle(c + 5, c - 5, 0.8);
+    // Eyes — 2x2 with bright red iris and black pupil dot
+    const drawEye = (ex: number, ey: number) => {
+      px(0xffffff, ex, ey);
+      px(0xffffff, ex + 1, ey);
+      px(0xffffff, ex, ey + 1);
+      px(0xffffff, ex + 1, ey + 1);
+      px(0xff2d2d, ex + 1, ey);
+      px(0xff8a8a, ex, ey);
+      px(0x000000, ex + 1, ey + 1);
+    };
+    drawEye(cx - 4, cy - 4);
+    drawEye(cx + 2, cy - 4);
+
+    // Mouth: open black slit with two top fangs
+    for (let dx = -3; dx <= 3; dx++) {
+      px(0x0a0306, cx + dx, cy + 2);
+      px(0x0a0306, cx + dx, cy + 3);
+    }
+    px(0xffffff, cx - 2, cy + 2);
+    px(0xffffff, cx + 2, cy + 2);
+    px(0xed9aa6, cx, cy + 3);
 
     g.generateTexture(TEX_KEY, TEX_SIZE, TEX_SIZE);
     g.destroy();
