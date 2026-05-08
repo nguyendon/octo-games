@@ -1,8 +1,8 @@
 import Phaser from "phaser";
 
-export const PLAYER_SIZE = 24;
+export const PLAYER_SIZE = 28;
 const PLAYER_SPEED = 220;
-const TEXTURE_KEY = "player-placeholder";
+const TEXTURE_KEY = "player-chef";
 
 type WasdKeys = Record<"W" | "A" | "S" | "D", Phaser.Input.Keyboard.Key>;
 
@@ -12,29 +12,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private wasd: WasdKeys;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    if (!scene.textures.exists(TEXTURE_KEY)) {
-      const g = scene.add.graphics();
-      g.fillStyle(0x6cb4ff, 1);
-      g.fillRoundedRect(0, 0, PLAYER_SIZE, PLAYER_SIZE, 4);
-      g.lineStyle(2, 0x2b6cb0, 1);
-      g.strokeRoundedRect(1, 1, PLAYER_SIZE - 2, PLAYER_SIZE - 2, 4);
-      // facing chevron on the right edge (default facing = +x)
-      g.fillStyle(0x1c4a7a, 1);
-      g.fillTriangle(
-        PLAYER_SIZE - 8, PLAYER_SIZE / 2 - 5,
-        PLAYER_SIZE - 3, PLAYER_SIZE / 2,
-        PLAYER_SIZE - 8, PLAYER_SIZE / 2 + 5,
-      );
-      g.generateTexture(TEXTURE_KEY, PLAYER_SIZE, PLAYER_SIZE);
-      g.destroy();
-    }
-
+    Player.ensureTexture(scene);
     super(scene, x, y, TEXTURE_KEY);
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(PLAYER_SIZE, PLAYER_SIZE);
+    body.setSize(22, 22);
+    body.setOffset((PLAYER_SIZE - 22) / 2, (PLAYER_SIZE - 22) / 2);
     body.setCollideWorldBounds(true);
 
     const keyboard = scene.input.keyboard!;
@@ -87,5 +72,53 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (vx !== 0 || vy !== 0) {
       this.setRotation(Math.atan2(vy, vx));
     }
+  }
+
+  private static ensureTexture(scene: Phaser.Scene) {
+    if (scene.textures.exists(TEXTURE_KEY)) return;
+    const W = PLAYER_SIZE;
+    const g = scene.add.graphics();
+
+    // Soft drop shadow
+    g.fillStyle(0x000000, 0.35);
+    g.fillEllipse(W / 2, W - 2, 18, 5);
+
+    // Chef coat (oriented "facing right" by default)
+    g.fillStyle(0xeaf0f7, 1);
+    g.fillRoundedRect(5, 12, 18, 14, 4);
+    g.lineStyle(1.5, 0xb3becb, 1);
+    g.strokeRoundedRect(5, 12, 18, 14, 4);
+
+    // Coat buttons down the middle
+    g.fillStyle(0x2b3340, 1);
+    g.fillCircle(14, 16, 1);
+    g.fillCircle(14, 20, 1);
+
+    // Skin / face
+    g.fillStyle(0xf2c79c, 1);
+    g.fillCircle(14, 9, 5);
+    g.lineStyle(1, 0xb88860, 1);
+    g.strokeCircle(14, 9, 5);
+
+    // Chef hat — band + poof
+    g.fillStyle(0xffffff, 1);
+    g.fillRoundedRect(9, 4, 10, 3, 1);
+    g.fillCircle(11, 3, 2.4);
+    g.fillCircle(14, 1.5, 2.8);
+    g.fillCircle(17, 3, 2.4);
+    g.lineStyle(1, 0xc8d0d8, 1);
+    g.strokeRoundedRect(9, 4, 10, 3, 1);
+
+    // Eyes — facing toward +x (right side of head)
+    g.fillStyle(0x111111, 1);
+    g.fillCircle(15, 8, 1);
+    g.fillCircle(17, 8, 1);
+
+    // Tiny nose / mouth on the leading edge
+    g.fillStyle(0xb88860, 1);
+    g.fillCircle(18.2, 10, 0.7);
+
+    g.generateTexture(TEXTURE_KEY, W, W);
+    g.destroy();
   }
 }

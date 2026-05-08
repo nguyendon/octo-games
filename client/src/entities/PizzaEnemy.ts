@@ -2,9 +2,10 @@ import Phaser from "phaser";
 import type { Player } from "./Player";
 
 const TEX_KEY = "pizza-enemy";
-const TEX_SIZE = 56;
-const BODY_R = 14;
-const TENTACLE_LEN = 12;
+const TEX_SIZE = 64;
+const BODY_R = 16;
+const TENTACLE_LEN = 14;
+const HITBOX_R = 14;
 
 const PATROL_SPEED = 70;
 const DEFAULT_CHASE_SPEED = 160;
@@ -66,8 +67,8 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(BODY_R * 2, BODY_R * 2);
-    body.setOffset(TEX_SIZE / 2 - BODY_R, TEX_SIZE / 2 - BODY_R);
+    body.setSize(HITBOX_R * 2, HITBOX_R * 2);
+    body.setOffset(TEX_SIZE / 2 - HITBOX_R, TEX_SIZE / 2 - HITBOX_R);
     body.setCollideWorldBounds(true);
 
     this.target = target;
@@ -300,32 +301,71 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     const c = TEX_SIZE / 2;
     const g = scene.add.graphics();
 
-    g.lineStyle(3, 0x111111, 1);
-    g.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI * 2 * i) / 6;
-      g.moveTo(c, c);
-      g.lineTo(c + Math.cos(angle) * (BODY_R + TENTACLE_LEN), c + Math.sin(angle) * (BODY_R + TENTACLE_LEN));
-    }
-    g.strokePath();
+    // Drop shadow under the body
+    g.fillStyle(0x000000, 0.45);
+    g.fillEllipse(c, c + BODY_R - 1, BODY_R * 1.9, BODY_R * 0.55);
 
-    g.fillStyle(0xe07a3a, 1);
+    // Tentacles — 8 wavy black arms, each drawn as a 3-segment polyline
+    // with a slight angular offset at the midpoint so they look organic.
+    const TENTACLES = 8;
+    g.lineStyle(4, 0x111111, 1);
+    for (let i = 0; i < TENTACLES; i++) {
+      const angle = (Math.PI * 2 * i) / TENTACLES;
+      const wOffset = (i % 2 === 0 ? 1 : -1) * 0.18;
+      const baseR = BODY_R - 2;
+      const midR = baseR + TENTACLE_LEN * 0.55;
+      const tipR = baseR + TENTACLE_LEN;
+      const x0 = c + Math.cos(angle) * baseR;
+      const y0 = c + Math.sin(angle) * baseR;
+      const x1 = c + Math.cos(angle + wOffset) * midR;
+      const y1 = c + Math.sin(angle + wOffset) * midR;
+      const x2 = c + Math.cos(angle - wOffset * 0.4) * tipR;
+      const y2 = c + Math.sin(angle - wOffset * 0.4) * tipR;
+      g.beginPath();
+      g.moveTo(x0, y0);
+      g.lineTo(x1, y1);
+      g.lineTo(x2, y2);
+      g.strokePath();
+      // Tentacle tip blob
+      g.fillStyle(0x111111, 1);
+      g.fillCircle(x2, y2, 2);
+    }
+
+    // Crust ring (darker outer, lighter inner)
+    g.fillStyle(0x8a4a26, 1);
     g.fillCircle(c, c, BODY_R);
-    g.fillStyle(0xfbcd9d, 1);
+    g.fillStyle(0xd07a3a, 1);
+    g.fillCircle(c, c, BODY_R - 1.5);
+    // Cheese layer
+    g.fillStyle(0xf6d488, 1);
     g.fillCircle(c, c, BODY_R - 4);
 
+    // Pepperoni / sauce flecks
     g.fillStyle(0xc44d36, 1);
-    g.fillCircle(c - 5, c + 4, 1.6);
-    g.fillCircle(c + 5, c + 4, 1.6);
-    g.fillCircle(c, c + 6, 1.6);
+    g.fillCircle(c - 6, c + 3, 2);
+    g.fillCircle(c + 6, c + 4, 1.8);
+    g.fillCircle(c + 2, c - 6, 1.6);
 
-    // tiny menacing eyes
+    // Wide-open menacing mouth with teeth
+    g.fillStyle(0x1a0508, 1);
+    g.fillEllipse(c, c + 1, 8, 4.5);
     g.fillStyle(0xffffff, 1);
-    g.fillCircle(c - 4, c - 2, 1.8);
-    g.fillCircle(c + 4, c - 2, 1.8);
-    g.fillStyle(0x111111, 1);
-    g.fillCircle(c - 4, c - 2, 1);
-    g.fillCircle(c + 4, c - 2, 1);
+    // Top row of teeth
+    g.fillTriangle(c - 4, c - 1, c - 2.5, c - 1, c - 3.2, c + 1);
+    g.fillTriangle(c - 1.5, c - 1, c, c - 1, c - 0.7, c + 1);
+    g.fillTriangle(c + 1, c - 1, c + 2.5, c - 1, c + 1.7, c + 1);
+    g.fillTriangle(c + 3, c - 1, c + 4, c - 1, c + 3.5, c + 0.5);
+
+    // Glowing red eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(c - 5, c - 5, 2.4);
+    g.fillCircle(c + 5, c - 5, 2.4);
+    g.fillStyle(0xff2d2d, 1);
+    g.fillCircle(c - 5, c - 5, 1.5);
+    g.fillCircle(c + 5, c - 5, 1.5);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(c - 5, c - 5, 0.8);
+    g.fillCircle(c + 5, c - 5, 0.8);
 
     g.generateTexture(TEX_KEY, TEX_SIZE, TEX_SIZE);
     g.destroy();
