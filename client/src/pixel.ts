@@ -45,3 +45,60 @@ export function generatePixelTexture(
   g.generateTexture(key, w, h);
   g.destroy();
 }
+
+/** Plot a single 1×1 pixel at integer coordinates. */
+export function px(
+  g: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  color: number,
+  alpha = 1,
+) {
+  g.fillStyle(color, alpha);
+  g.fillRect(Math.round(x), Math.round(y), 1, 1);
+}
+
+/** Pixel-perfect filled circle (each pixel decided by integer distance test). */
+export function pxCircle(
+  g: Phaser.GameObjects.Graphics,
+  cx: number,
+  cy: number,
+  r: number,
+  color: number,
+) {
+  const r2 = r * r;
+  for (let y = -r; y <= r; y++) {
+    for (let x = -r; x <= r; x++) {
+      if (x * x + y * y <= r2) px(g, cx + x, cy + y, color);
+    }
+  }
+}
+
+/** Pixel-perfect filled axis-aligned ellipse. */
+export function pxEllipse(
+  g: Phaser.GameObjects.Graphics,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  color: number,
+) {
+  for (let y = -ry; y <= ry; y++) {
+    for (let x = -rx; x <= rx; x++) {
+      if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1) px(g, cx + x, cy + y, color);
+    }
+  }
+}
+
+/** Filled rectangle with snapped integer coordinates. */
+export function pxRect(
+  g: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: number,
+) {
+  g.fillStyle(color, 1);
+  g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}

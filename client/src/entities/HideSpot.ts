@@ -1,7 +1,69 @@
 import Phaser from "phaser";
+import { generatePixelTexture, type Palette, type PixelGrid } from "../pixel";
 
-const SIZE = 40;
+const SIZE = 36;
 const TEX_KEY = "hide-spot-wardrobe";
+
+// 36x36 wardrobe (top-down 3/4 view)
+// W = wood top trim
+// w = wood mid
+// d = wood dark seam
+// D = wood deep shadow
+// k = outline
+// h = hinge
+// b = brass knob
+// B = brass shadow
+// s = floor shadow under wardrobe
+const WARDROBE: PixelGrid = [
+  "....................................",
+  "....................................",
+  "....kkkkkkkkkkkkkkkkkkkkkkkkkkkk....",
+  "....kWWWWWWWWWWWWWWWWWWWWWWWWWWk....",
+  "....kWWWWWWWWWWWWWWWWWWWWWWWWWWk....",
+  "....kWWdddddddddddddddddddddWWk.....",
+  "....kwwwwwwwwwwwwwwwwwwwwwwwwwwk....",
+  "....khwwwwwwwwwwwwdwwwwwwwwwwwhk....",
+  "....khwwwwwwwwwwwwdwwwwwwwwwwwhk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....khwwwwwwwwbwwwdwwwbwwwwwwwhk....",
+  "....khwwwwwwwBbwwwdwwwbBwwwwwwhk....",
+  "....kwwwwwwwwBwwwwdwwwwBwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....kwwwwwwwwwwwwwdwwwwwwwwwwwwk....",
+  "....khwwwwwwwwwwwwdwwwwwwwwwwwhk....",
+  "....khwwwwwwwwwwwwdwwwwwwwwwwwhk....",
+  "....kDDDDDDDDDDDDDDDDDDDDDDDDDDk....",
+  "....kkkkkkkkkkkkkkkkkkkkkkkkkkkk....",
+  "....ssssssssssssssssssssssssssss....",
+  "...sssssssssssssssssssssssssssss....",
+  "....................................",
+  "....................................",
+  "....................................",
+  "....................................",
+  "....................................",
+  "....................................",
+];
+
+const PALETTE: Palette = {
+  k: 0x1a0d05,
+  W: 0x6e3c1a,
+  w: 0x8a4f24,
+  d: 0x3a1e0a,
+  D: 0x2a1407,
+  h: 0xc5a14a,
+  b: 0xe3c06a,
+  B: 0x6a4818,
+  s: [0x000000, 0.4],
+};
 
 export class HideSpot extends Phaser.GameObjects.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -10,48 +72,13 @@ export class HideSpot extends Phaser.GameObjects.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this, true);
     const body = this.body as Phaser.Physics.Arcade.StaticBody;
-    body.setSize(SIZE, SIZE);
+    body.setSize(SIZE - 8, SIZE - 8);
+    body.setOffset(4, 4);
     body.updateFromGameObject();
   }
 
   private static ensureTexture(scene: Phaser.Scene) {
     if (scene.textures.exists(TEX_KEY)) return;
-    const g = scene.add.graphics();
-
-    // Floor shadow under the wardrobe
-    g.fillStyle(0x000000, 0.35);
-    g.fillEllipse(SIZE / 2, SIZE - 1, SIZE * 0.85, 5);
-
-    // Wardrobe body — warm wood
-    g.fillStyle(0x4a2f1a, 1);
-    g.fillRoundedRect(2, 4, SIZE - 4, SIZE - 6, 3);
-    g.fillStyle(0x6b4222, 1);
-    g.fillRoundedRect(3, 5, SIZE - 6, SIZE - 8, 2);
-
-    // Two doors with a center divider
-    g.lineStyle(1.5, 0x2a1a0e, 1);
-    g.lineBetween(SIZE / 2, 7, SIZE / 2, SIZE - 5);
-
-    // Door panels
-    g.lineStyle(1, 0x3a230f, 0.7);
-    g.strokeRect(6, 9, SIZE / 2 - 9, SIZE - 16);
-    g.strokeRect(SIZE / 2 + 3, 9, SIZE / 2 - 9, SIZE - 16);
-
-    // Brass knobs
-    g.fillStyle(0xd4a14a, 1);
-    g.fillCircle(SIZE / 2 - 4, SIZE / 2, 1.5);
-    g.fillCircle(SIZE / 2 + 4, SIZE / 2, 1.5);
-    g.fillStyle(0xfde7a8, 1);
-    g.fillCircle(SIZE / 2 - 4.4, SIZE / 2 - 0.4, 0.5);
-    g.fillCircle(SIZE / 2 + 3.6, SIZE / 2 - 0.4, 0.5);
-
-    // Top trim
-    g.fillStyle(0x2a1a0e, 1);
-    g.fillRect(2, 2, SIZE - 4, 3);
-    g.fillStyle(0x6b4222, 1);
-    g.fillRect(4, 2, SIZE - 8, 1);
-
-    g.generateTexture(TEX_KEY, SIZE, SIZE);
-    g.destroy();
+    generatePixelTexture(scene, TEX_KEY, WARDROBE, PALETTE);
   }
 }
