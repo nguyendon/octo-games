@@ -4,10 +4,13 @@ import { getPizzaSpeedMultiplier } from "../speedMultiplier";
 
 export const PIZZA_TEXTURE_KEY = "pizza-enemy";
 const TEX_KEY = PIZZA_TEXTURE_KEY;
-const TEX_SIZE = 36;
-const BODY_R = 10;
-const TENTACLE_LEN = 6;
-const HITBOX_R = 12;
+// Source image is 192x162; display at this size so the pizza reads roughly
+// the same on-screen footprint as the 28px chef while keeping the source
+// detail crisp under linear filtering.
+const DISPLAY_W = 52;
+const DISPLAY_H = 44;
+const HITBOX_W = 26;
+const HITBOX_H = 22;
 
 const PATROL_SPEED = 70;
 const DEFAULT_CHASE_SPEED = 160;
@@ -68,10 +71,18 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, TEX_KEY);
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDisplaySize(DISPLAY_W, DISPLAY_H);
 
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(HITBOX_R * 2, HITBOX_R * 2);
-    body.setOffset(TEX_SIZE / 2 - HITBOX_R, TEX_SIZE / 2 - HITBOX_R);
+    // Body sizes are in frame-pixel units; we want a HITBOX_W x HITBOX_H
+    // world-unit hitbox centered in the displayed sprite. Convert through the
+    // current scale so it stays right regardless of source-image dimensions.
+    const fw = this.frame.width;
+    const fh = this.frame.height;
+    const hitFrameW = (HITBOX_W / DISPLAY_W) * fw;
+    const hitFrameH = (HITBOX_H / DISPLAY_H) * fh;
+    body.setSize(hitFrameW, hitFrameH);
+    body.setOffset((fw - hitFrameW) / 2, (fh - hitFrameH) / 2);
     body.setCollideWorldBounds(true);
 
     this.target = target;
@@ -108,14 +119,6 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
       targets: this,
       angle: 4,
       duration: 320,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
-    scene.tweens.add({
-      targets: this,
-      scale: 1.05,
-      duration: 540,
       yoyo: true,
       repeat: -1,
       ease: "Sine.easeInOut",
@@ -326,100 +329,10 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   static ensureTexture(scene: Phaser.Scene) {
-    if (scene.textures.exists(TEX_KEY)) return;
-    const cx = TEX_SIZE / 2;
-    const cy = TEX_SIZE / 2;
-    const g = scene.add.graphics();
-
-    const px = (color: number, x: number, y: number, alpha = 1) => {
-      g.fillStyle(color, alpha);
-      g.fillRect(Math.round(x), Math.round(y), 1, 1);
-    };
-
-    // Tentacles — 8 directions, drawn as 1-2 px wide chunky lines.
-    for (let i = 0; i < 8; i++) {
-      const angle = (Math.PI * 2 * i) / 8;
-      for (let t = 0; t <= TENTACLE_LEN; t++) {
-        const r = BODY_R - 1 + t;
-        const x = cx + Math.cos(angle) * r;
-        const y = cy + Math.sin(angle) * r;
-        px(0x0e0e16, x, y);
-        // Thicken by 1 px perpendicular
-        const px2x = x + Math.cos(angle + Math.PI / 2);
-        const px2y = y + Math.sin(angle + Math.PI / 2);
-        px(0x1c1c2a, px2x, px2y);
-      }
-      // Bulb at tip
-      const tipR = BODY_R + TENTACLE_LEN;
-      const tx = cx + Math.cos(angle) * tipR;
-      const ty = cy + Math.sin(angle) * tipR;
-      px(0x0e0e16, tx, ty);
-      px(0x0e0e16, tx + Math.cos(angle + Math.PI / 2), ty + Math.sin(angle + Math.PI / 2));
-      px(0x0e0e16, tx - Math.cos(angle + Math.PI / 2), ty - Math.sin(angle + Math.PI / 2));
-    }
-
-    // Body — concentric pixel rings (no AA: each pixel decided by distance).
-    for (let y = -BODY_R; y <= BODY_R; y++) {
-      for (let x = -BODY_R; x <= BODY_R; x++) {
-        const d = Math.sqrt(x * x + y * y);
-        if (d > BODY_R + 0.2) continue;
-        let color;
-        if (d > BODY_R - 0.6) color = 0x3a1808;
-        else if (d > BODY_R - 1.6) color = 0x6a2f10;
-        else if (d > BODY_R - 2.6) color = 0xa8602a;
-        else if (d > BODY_R - 3.6) color = 0xd6863a;
-        else if (d > BODY_R - 4.5) color = 0xe8a55a;
-        else color = 0xf0c46e;
-        px(color, cx + x, cy + y);
-      }
-    }
-
-    // Cheese highlight specks
-    px(0xfde7a8, cx - 4, cy - 1);
-    px(0xfde7a8, cx + 3, cy + 2);
-    px(0xfde7a8, cx - 1, cy + 4);
-
-    // Pepperoni — three small dark-red discs (3-pixel plus-shape)
-    const peps: Array<[number, number]> = [
-      [-4, -1],
-      [3, -2],
-      [-1, 4],
-    ];
-    for (const [dx, dy] of peps) {
-      const x = cx + dx;
-      const y = cy + dy;
-      px(0x7a2222, x, y);
-      px(0x7a2222, x - 1, y);
-      px(0x7a2222, x + 1, y);
-      px(0x7a2222, x, y - 1);
-      px(0x7a2222, x, y + 1);
-      px(0xa83232, x, y);
-      px(0x4a1010, x + 1, y + 1);
-    }
-
-    // Eyes — 2x2 with bright red iris and black pupil dot
-    const drawEye = (ex: number, ey: number) => {
-      px(0xffffff, ex, ey);
-      px(0xffffff, ex + 1, ey);
-      px(0xffffff, ex, ey + 1);
-      px(0xffffff, ex + 1, ey + 1);
-      px(0xff2d2d, ex + 1, ey);
-      px(0xff8a8a, ex, ey);
-      px(0x000000, ex + 1, ey + 1);
-    };
-    drawEye(cx - 4, cy - 4);
-    drawEye(cx + 2, cy - 4);
-
-    // Mouth: open black slit with two top fangs
-    for (let dx = -3; dx <= 3; dx++) {
-      px(0x0a0306, cx + dx, cy + 2);
-      px(0x0a0306, cx + dx, cy + 3);
-    }
-    px(0xffffff, cx - 2, cy + 2);
-    px(0xffffff, cx + 2, cy + 2);
-    px(0xed9aa6, cx, cy + 3);
-
-    g.generateTexture(TEX_KEY, TEX_SIZE, TEX_SIZE);
-    g.destroy();
+    // The image is loaded in BootScene.preload(); here we just opt this texture
+    // into bilinear filtering so the detailed source art doesn't look chunky
+    // when scaled down under the game's global pixelArt:true setting.
+    if (!scene.textures.exists(TEX_KEY)) return;
+    scene.textures.get(TEX_KEY).setFilter(Phaser.Textures.FilterMode.LINEAR);
   }
 }

@@ -10,6 +10,10 @@ export class BootScene extends Phaser.Scene {
     super("Boot");
   }
 
+  preload() {
+    this.load.image(PIZZA_TEXTURE_KEY, "/evil-pizza.png");
+  }
+
   async create() {
     this.cameras.main.fadeIn(280, 0, 0, 0);
 
@@ -27,20 +31,12 @@ export class BootScene extends Phaser.Scene {
       ease: "Sine.easeInOut",
     });
 
-    const pizza = this.add.sprite(510, 110, PIZZA_TEXTURE_KEY).setScale(2.0);
+    const pizza = this.add.sprite(510, 110, PIZZA_TEXTURE_KEY).setScale(0.4);
     pizza.setFlipX(true);
     this.tweens.add({
       targets: pizza,
       angle: 4,
       duration: 320,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
-    this.tweens.add({
-      targets: pizza,
-      scale: 2.1,
-      duration: 540,
       yoyo: true,
       repeat: -1,
       ease: "Sine.easeInOut",
