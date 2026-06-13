@@ -145,6 +145,7 @@ export class LevelScene extends Phaser.Scene {
         },
       );
       this.physics.add.collider(enemy, walls);
+      this.physics.add.collider(enemy, this.hideSpots);
       this.physics.add.overlap(this.player, enemy, () => this.onCaught());
       enemy.on("chase-start", () => sfx.spotted());
       return enemy;
@@ -414,6 +415,7 @@ export class LevelScene extends Phaser.Scene {
 
   private onCaught() {
     if (this.isInputBlocked) return;
+    if (this.player.isHidden) return;
     if (this.time.now < this.invulnerableUntil) return;
 
     this.isInputBlocked = true;
