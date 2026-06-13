@@ -48,7 +48,7 @@ export class BootScene extends Phaser.Scene {
 
     // Title
     this.add
-      .text(400, 200, "Octo Games", {
+      .text(400, 200, "The Runs", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "44px",
         color: "#ffd166",
