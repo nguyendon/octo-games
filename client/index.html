@@ -13,28 +13,11 @@
         font-family: system-ui, sans-serif;
         color: #eee;
       }
-      #stack { display: flex; flex-direction: column; align-items: center; gap: 10px; }
       #game { box-shadow: 0 0 30px rgba(0, 0, 0, 0.6); }
-      #controls {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 13px;
-        color: #aaa;
-      }
-      #pizza-speed { width: 200px; accent-color: #ffd166; }
-      #pizza-speed-value { min-width: 44px; text-align: right; color: #ffd166; }
     </style>
   </head>
   <body>
-    <div id="stack">
-      <div id="game"></div>
-      <div id="controls">
-        <label for="pizza-speed">pizza speed</label>
-        <input id="pizza-speed" type="range" min="0" max="2" step="0.05" value="1" tabindex="-1" />
-        <span id="pizza-speed-value">1.00×</span>
-      </div>
-    </div>
+    <div id="game"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

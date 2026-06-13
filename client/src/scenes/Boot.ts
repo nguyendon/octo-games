@@ -114,16 +114,18 @@ export class BootScene extends Phaser.Scene {
     );
 
     this.makeButton(400, 440, "[R]  Records", "#cfd8dc", true, () => this.scene.start("Stats"));
+    this.makeButton(400, 470, "[S]  Settings", "#cfd8dc", true, () => this.openSettings());
 
     const kb = this.input.keyboard!;
     kb.on("keydown-ONE", () => startScene("Level1"));
     if (level2Unlocked) kb.on("keydown-TWO", () => startScene("Level2"));
     if (level3Unlocked) kb.on("keydown-THREE", () => startScene("Level3"));
     kb.on("keydown-R", () => this.scene.start("Stats"));
+    kb.on("keydown-S", () => this.openSettings());
     kb.once("keydown-SPACE", () => startScene("Level1"));
 
     const hint = this.add
-      .text(400, 500, "press 1 / 2 / 3 / R — or SPACE for level 1", {
+      .text(400, 510, "press 1 / 2 / 3 / R / S — or SPACE for level 1", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "13px",
         color: "#888",
@@ -136,6 +138,16 @@ export class BootScene extends Phaser.Scene {
       duration: 700,
       yoyo: true,
       repeat: -1,
+    });
+  }
+
+  private openSettings() {
+    this.scene.pause();
+    this.scene.launch("PauseMenu", { context: "boot" });
+    const menu = this.scene.get("PauseMenu");
+    menu.events.once("choice", () => {
+      this.scene.stop("PauseMenu");
+      this.scene.resume();
     });
   }
 
