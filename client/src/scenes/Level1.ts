@@ -46,7 +46,6 @@ export class LevelScene extends Phaser.Scene {
   private escKey!: Phaser.Input.Keyboard.Key;
   private muteKey!: Phaser.Input.Keyboard.Key;
   private muteIndicator?: Phaser.GameObjects.Text;
-  private tierLabels: Phaser.GameObjects.Text[] = [];
   private playerSpawn = new Phaser.Math.Vector2(0, 0);
   private readonly collected = new Set<IngredientId>();
   private readonly ingredientSprites = new Map<IngredientId, Ingredient>();
@@ -125,8 +124,6 @@ export class LevelScene extends Phaser.Scene {
     this.player = new Player(this, this.playerSpawn.x, this.playerSpawn.y);
     this.physics.add.collider(this.player, walls);
 
-    const wins = this.getProfile()?.winCounts[this.levelId] ?? 0;
-    const tier = Math.min(wins + this.cfg.difficultyBonus, 5);
     this.enemies = this.cfg.pizzas.map((spec) => {
       const spawnRoom = ROOM_BY_KEY[spec.spawn];
       const enemy = new PizzaEnemy(
@@ -139,9 +136,9 @@ export class LevelScene extends Phaser.Scene {
         spawnRoom,
         INTERSECTION,
         {
-          chaseSpeed: 160 + tier * 12,
-          searchSpeed: 140 + tier * 10,
-          sightRange: 260 + tier * 16,
+          chaseSpeed: this.cfg.baseSpeed.chase,
+          searchSpeed: this.cfg.baseSpeed.search,
+          sightRange: this.cfg.baseSpeed.sight,
         },
       );
       this.physics.add.collider(enemy, walls);
@@ -172,7 +169,7 @@ export class LevelScene extends Phaser.Scene {
       fontSize: "14px",
       color: "#aaa",
     });
-    this.add.text(20, 40, `${this.cfg.title} · pizza tier ${tier}`, {
+    this.add.text(20, 40, this.cfg.title, {
       fontFamily: "system-ui, sans-serif",
       fontSize: "12px",
       color: "#777",
@@ -183,18 +180,6 @@ export class LevelScene extends Phaser.Scene {
       fontSize: "12px",
       color: "#888",
     });
-
-    this.tierLabels = this.enemies.map((enemy) =>
-      this.add
-        .text(enemy.x, enemy.y - 32, `T${tier}`, {
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-          fontSize: "11px",
-          color: "#ff8a8a",
-          fontStyle: "bold",
-        })
-        .setOrigin(0.5)
-        .setDepth(20),
-    );
 
     this.maybeShowTutorial();
   }
@@ -283,11 +268,8 @@ export class LevelScene extends Phaser.Scene {
     }
 
     this.player.update();
-    for (let i = 0; i < this.enemies.length; i++) {
-      const enemy = this.enemies[i];
+    for (const enemy of this.enemies) {
       enemy.update(time);
-      const label = this.tierLabels[i];
-      if (label) label.setPosition(enemy.x, enemy.y - 32);
     }
 
     const onHideSpot = !this.player.isHidden && !!this.physics.overlap(this.player, this.hideSpots);

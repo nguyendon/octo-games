@@ -7,6 +7,12 @@ export interface PizzaSpawn {
   reset: RoomKey;
 }
 
+export interface BaseSpeed {
+  chase: number;
+  search: number;
+  sight: number;
+}
+
 export interface LevelConfig {
   id: LevelId;
   title: string;
@@ -16,7 +22,7 @@ export interface LevelConfig {
   stove: { x: number; y: number };
   playerSpawn: { x: number; y: number };
   pizzas: PizzaSpawn[];
-  difficultyBonus: number;
+  baseSpeed: BaseSpeed;
   roomLabels: Record<RoomKey, string>;
 }
 
@@ -50,7 +56,7 @@ export const LEVELS: Record<LevelId, LevelConfig> = {
     stove: { x: 620, y: 460 },
     playerSpawn: { x: 140, y: 140 },
     pizzas: [{ spawn: "TR", reset: "BR" }],
-    difficultyBonus: 0,
+    baseSpeed: { chase: 150, search: 130, sight: 250 },
     roomLabels: {
       TL: "LIVING ROOM",
       TR: "PANTRY",
@@ -86,7 +92,7 @@ export const LEVELS: Record<LevelId, LevelConfig> = {
       { spawn: "BL", reset: "BL" },
       { spawn: "BR", reset: "BR" },
     ],
-    difficultyBonus: 2,
+    baseSpeed: { chase: 210, search: 175, sight: 320 },
     roomLabels: {
       TL: "LIVING ROOM",
       TR: "PANTRY",
@@ -124,7 +130,7 @@ export const LEVELS: Record<LevelId, LevelConfig> = {
       { spawn: "TR", reset: "TR" },
       { spawn: "BL", reset: "BL" },
     ],
-    difficultyBonus: 1,
+    baseSpeed: { chase: 180, search: 150, sight: 285 },
     roomLabels: {
       TL: "KITCHEN",
       TR: "STUDY",
