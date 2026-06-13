@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import type { Player } from "./Player";
+import { getPizzaSpeedMultiplier } from "../speedMultiplier";
 
 export const PIZZA_TEXTURE_KEY = "pizza-enemy";
 const TEX_KEY = PIZZA_TEXTURE_KEY;
@@ -225,7 +226,8 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
     const dy = this.target.y - this.y;
     const len = Math.hypot(dx, dy);
     if (len > 0) {
-      this.setVelocity((dx / len) * this.chaseSpeed, (dy / len) * this.chaseSpeed);
+      const s = this.chaseSpeed * getPizzaSpeedMultiplier();
+      this.setVelocity((dx / len) * s, (dy / len) * s);
     } else {
       this.setVelocity(0, 0);
     }
@@ -292,11 +294,12 @@ export class PizzaEnemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   private walkTowards(p: Phaser.Math.Vector2, speed: number) {
+    const s = speed * getPizzaSpeedMultiplier();
     const dx = p.x - this.x;
     const dy = p.y - this.y;
     const len = Math.hypot(dx, dy);
     if (len > 0) {
-      this.setVelocity((dx / len) * speed, (dy / len) * speed);
+      this.setVelocity((dx / len) * s, (dy / len) * s);
     } else {
       this.setVelocity(0, 0);
     }
